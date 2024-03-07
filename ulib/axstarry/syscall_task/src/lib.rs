@@ -128,7 +128,6 @@ pub fn task_syscall(syscall_id: task_syscall_id::TaskSyscallId, args: [usize; 6]
             args[2] as *const TimeSecs,
             args[3] as *mut TimeSecs,
         ),
-        SOCKETPAIR => Err(SyscallError::EAFNOSUPPORT),
         #[allow(unused)]
         _ => {
             panic!("Invalid Syscall Id: {:?}!", syscall_id);

@@ -9,6 +9,7 @@ numeric_enum_macro::numeric_enum! {
 pub enum NetSyscallId {
     // Socket
     SOCKET = 198,
+    SOCKETPAIR = 199,
     BIND = 200,
     LISTEN = 201,
     ACCEPT = 202,

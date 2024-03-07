@@ -37,7 +37,6 @@ pub enum TaskSyscallId {
     GETEGID = 177,
     GETTID = 178,
     SYSINFO = 179,
-    SOCKETPAIR = 199,
     CLONE = 220,
     EXECVE = 221,
     MADVICE = 233,

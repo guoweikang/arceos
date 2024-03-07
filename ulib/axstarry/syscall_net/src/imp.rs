@@ -14,6 +14,14 @@ use syscall_utils::{SyscallError, SyscallResult};
 
 pub const SOCKET_TYPE_MASK: usize = 0xFF;
 
+// domain 支持 AF_UNIX
+// type 仅支持 STREAM 
+// fd 返回两个全双工的fd
+pub fn syscall_socketpair(domain: usize, s_type: usize, _protocol: usize, fd: *mut u32) -> SyscallResult {
+    error!("please implemented socketpair");    
+    return Err(SyscallError::EAFNOSUPPORT);
+}
+
 pub fn syscall_socket(domain: usize, s_type: usize, _protocol: usize) -> SyscallResult {
     let Ok(domain) = Domain::try_from(domain) else {
         error!("[socket()] Address Family not supported: {domain}");
