@@ -6,3 +6,5 @@
 actual.out
 qemu.log
 rusty-tags.vi
+*.swp
+payload/init

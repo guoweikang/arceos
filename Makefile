@@ -25,7 +25,7 @@
 #     - `GW`: Gateway IPv4 address (default is 10.0.2.2 for QEMU user netdev)
 
 # General options
-ARCH ?= x86_64
+ARCH ?= riscv64
 PLATFORM ?=
 SMP ?= 1
 MODE ?= release
@@ -33,13 +33,13 @@ LOG ?= warn
 V ?=
 
 # App options
-A ?= apps/helloworld
+A ?= apps/macrokernel
 APP ?= $(A)
 FEATURES ?=
 APP_FEATURES ?=
 
 # QEMU options
-BLK ?= n
+BLK ?= y
 NET ?= n
 GRAPHIC ?= n
 BUS ?= mmio
@@ -201,6 +201,18 @@ else
 	$(call make_disk_image,fat32,$(DISK_IMG))
 endif
 
+linux_img: linux_apps
+ifneq ($(wildcard $(DISK_IMG)),)
+	@printf "$(YELLOW_C)warning$(END_C): image \"$(DISK_IMG)\" will be overwritten!\n"
+	@printf "Please rename it for backup or just delete it!\n"
+else
+	$(call make_disk_image,fat32,$(DISK_IMG))
+	$(call build_linux_image,$(DISK_IMG))
+endif
+
+linux_apps:
+	@make -C payload
+
 clean: clean_c
 	rm -rf $(APP)/*.bin $(APP)/*.elf
 	cargo clean
@@ -209,4 +221,4 @@ clean_c::
 	rm -rf ulib/axlibc/build_*
 	rm -rf $(app-objs)
 
-.PHONY: all build disasm run justrun debug clippy fmt fmt_c test test_no_fail_fast clean clean_c doc disk_image
+.PHONY: all build disasm run justrun debug clippy fmt fmt_c test test_no_fail_fast clean clean_c doc disk_img linux_img linux_apps

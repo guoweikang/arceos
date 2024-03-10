@@ -70,6 +70,10 @@ members = [
     "apps/task/yield",
     "apps/task/priority",
     "apps/task/tls",
+    "apps/macrokernel",
+    "modules/userboot",
+    "modules/fork",
+    "modules/task",
 ]
 
 [profile.release]

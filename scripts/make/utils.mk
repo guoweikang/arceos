@@ -21,3 +21,12 @@ endef
 define make_disk_image
   $(if $(filter $(1),fat32), $(call make_disk_image_fat32,$(2)))
 endef
+
+define build_linux_image
+  @mkdir -p ./mnt
+  @sudo mount $(1) ./mnt
+  @sudo mkdir -p ./mnt/sbin
+  @sudo cp ./payload/init ./mnt/sbin
+  @sudo umount ./mnt
+  @rm -rf mnt
+endef
