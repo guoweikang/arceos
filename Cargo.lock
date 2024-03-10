@@ -1018,6 +1018,8 @@ version = "0.1.0"
 dependencies = [
  "bitflags 2.4.0",
  "log",
+ "memory_addr",
+ "run_queue",
  "task",
 ]
 
@@ -1596,6 +1598,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "run_queue"
+version = "0.1.0"
+dependencies = [
+ "cfg-if",
+ "lazy_init",
+ "log",
+ "scheduler",
+ "spinlock",
+ "task",
+]
+
+[[package]]
 name = "rustc-hash"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1912,6 +1926,7 @@ version = "0.1.0"
 dependencies = [
  "fork",
  "log",
+ "run_queue",
  "task",
 ]
 

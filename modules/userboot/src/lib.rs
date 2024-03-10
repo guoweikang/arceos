@@ -9,6 +9,7 @@ pub fn start() {
     error!("userboot::start ...");
 
     task::init();
+    run_queue::init();
     rest_init();
 }
 
@@ -30,6 +31,9 @@ fn rest_init() {
 }
 
 fn schedule_preempt_disabled() {
+    let task = task::current();
+    let rq = run_queue::task_rq(&task);
+    rq.lock().resched(false);
     unimplemented!("schedule_preempt_disabled()");
 }
 

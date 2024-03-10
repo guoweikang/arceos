@@ -8,4 +8,5 @@ edition = "2021"
 [dependencies]
 log = "0.4"
 task = { path = "../task" }
+run_queue = { path = "../run_queue" }
 fork = { path = "../fork" }

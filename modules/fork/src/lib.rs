@@ -7,7 +7,8 @@ use alloc::sync::Arc;
 use alloc::boxed::Box;
 use alloc::string::String;
 
-use task::{current, TaskRef, Pid};
+use task::{current, TaskRef, Pid, TaskStack};
+use memory_addr::{align_up_4k, PAGE_SIZE_4K};
 
 bitflags::bitflags! {
     /// clone flags
@@ -31,19 +32,19 @@ struct KernelCloneArgs {
     flags: CloneFlags,
     name: String,
     exit_signal: u32,
-    func: Option<*mut dyn FnOnce()>,
+    entry: Option<*mut dyn FnOnce()>,
 }
 
 impl KernelCloneArgs {
     fn new(
         flags: CloneFlags, name: String, exit_signal: u32,
-        func: Option<*mut dyn FnOnce()>
+        entry: Option<*mut dyn FnOnce()>
     ) -> Self {
         Self {
             flags,
             name,
             exit_signal,
-            func,
+            entry,
         }
     }
 
@@ -59,6 +60,8 @@ impl KernelCloneArgs {
     }
 
     fn wake_up_new_task(&self, task: &TaskRef) {
+        let rq = run_queue::task_rq(task);
+        rq.lock().activate_task(task.clone());
         error!("wake_up_new_task");
     }
 
@@ -72,10 +75,21 @@ impl KernelCloneArgs {
 
     fn copy_thread(&self, task: &mut TaskRef) {
         error!("copy_thread ...");
-        let task = Arc::get_mut(task);
-        assert!(!task.is_none());
+        let task = Arc::get_mut(task).expect("userd by other threads!");
+        assert!(self.entry.is_some());
+        task.entry = self.entry;
+        let kstack = TaskStack::alloc(align_up_4k(2*PAGE_SIZE_4K));
+        task.thread.get_mut().init(task_entry as usize, kstack.top().into(), 0.into());
         error!("copy_thread!");
     }
+}
+
+extern "C" fn task_entry() -> ! {
+    let task = crate::current();
+    if let Some(entry) = task.entry {
+        unsafe { Box::from_raw(entry)() };
+    }
+    unimplemented!("task_entry!");
 }
 
 /// Create a user thread
