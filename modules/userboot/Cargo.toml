@@ -10,3 +10,4 @@ log = "0.4"
 task = { path = "../task" }
 run_queue = { path = "../run_queue" }
 fork = { path = "../fork" }
+axerrno = { path = "../../crates/axerrno" }

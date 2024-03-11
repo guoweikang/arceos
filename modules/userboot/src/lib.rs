@@ -1,9 +1,11 @@
 #![no_std]
+#![feature(result_option_inspect)]
 
 #[macro_use]
 extern crate log;
 extern crate alloc;
 use fork::{user_mode_thread, CloneFlags};
+use axerrno::{LinuxResult, LinuxError};
 
 pub fn start() {
     error!("userboot::start ...");
@@ -17,7 +19,6 @@ fn rest_init() {
     error!("rest_init ...");
     let pid = user_mode_thread(|| {
         kernel_init();
-        ret_from_fork();
     }, CloneFlags::CLONE_FS);
     assert_eq!(pid, 1);
 
@@ -43,10 +44,31 @@ fn cpu_startup_entry() {
 
 /// Prepare for entering first user app.
 fn kernel_init() {
-    unimplemented!("userboot::kernel_init");
+    try_to_run_init_process("/sbin/init")
+        .expect("No working init found.");
 }
 
-/// Return to userland from kernel.
-fn ret_from_fork() {
-    unimplemented!("ret_from_fork");
+fn try_to_run_init_process(init_filename: &str) -> LinuxResult {
+    run_init_process(init_filename)
+        .inspect_err(|e| if e == &LinuxError::ENOENT {
+            error!("Starting init: {} exists but couldn't execute it (error {})",
+                   init_filename, e);
+        })
+}
+
+fn run_init_process(init_filename: &str) -> LinuxResult {
+    /*
+    const char *const *p;
+
+    argv_init[0] = init_filename;
+    pr_info("Run %s as init process\n", init_filename);
+    pr_debug("  with arguments:\n");
+    for (p = argv_init; *p; p++)
+        pr_debug("    %s\n", *p);
+    pr_debug("  with environment:\n");
+    for (p = envp_init; *p; p++)
+        pr_debug("    %s\n", *p);
+    return kernel_execve(init_filename, argv_init, envp_init);
+    */
+    unimplemented!("run_init_process!");
 }

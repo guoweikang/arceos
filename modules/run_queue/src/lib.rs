@@ -16,3 +16,7 @@ pub fn init() {
 pub fn task_rq(_task: &TaskRef) -> &SpinNoIrq<AxRunQueue> {
     &RUN_QUEUE
 }
+
+pub fn force_unlock() {
+    unsafe { RUN_QUEUE.force_unlock() }
+}

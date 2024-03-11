@@ -85,11 +85,22 @@ impl KernelCloneArgs {
 }
 
 extern "C" fn task_entry() -> ! {
+    // schedule_tail
+    // unlock runqueue for freshly created task
+    unsafe { run_queue::force_unlock() };
+
     let task = crate::current();
     if let Some(entry) = task.entry {
         unsafe { Box::from_raw(entry)() };
     }
+
+    ret_from_fork();
     unimplemented!("task_entry!");
+}
+
+/// Return to userland from kernel.
+fn ret_from_fork() {
+    unimplemented!("ret_from_fork");
 }
 
 /// Create a user thread
