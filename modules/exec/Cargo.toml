@@ -1,5 +1,5 @@
 [package]
-name = "userboot"
+name = "exec"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,8 +7,6 @@ edition = "2021"
 
 [dependencies]
 log = "0.4"
-task = { path = "../task" }
-run_queue = { path = "../run_queue" }
-fork = { path = "../fork" }
-exec = { path = "../exec" }
+mmap = { path = "../mmap" }
 axerrno = { path = "../../crates/axerrno" }
+memory_addr = { path = "../../crates/memory_addr" }

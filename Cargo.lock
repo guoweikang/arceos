@@ -988,6 +988,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "exec"
+version = "0.1.0"
+dependencies = [
+ "axerrno",
+ "log",
+ "memory_addr",
+ "mmap",
+]
+
+[[package]]
 name = "fatfs"
 version = "0.4.0"
 source = "git+https://github.com/rafalh/rust-fatfs?rev=a3a834e#a3a834ef92d94dd227c316c0887654dab00ae085"
@@ -1277,6 +1287,14 @@ name = "minimal-lexical"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "68354c5c6bd36d73ff3feceb05efa59b6acb7626617f4962be322a825e61f79a"
+
+[[package]]
+name = "mmap"
+version = "0.1.0"
+dependencies = [
+ "axerrno",
+ "memory_addr",
+]
 
 [[package]]
 name = "nb"
@@ -1925,6 +1943,7 @@ name = "userboot"
 version = "0.1.0"
 dependencies = [
  "axerrno",
+ "exec",
  "fork",
  "log",
  "run_queue",
