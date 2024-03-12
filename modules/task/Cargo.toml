@@ -9,4 +9,5 @@ edition = "2021"
 log = "0.4"
 axhal = { path = "../axhal" }
 mm = { path = "../mm" }
+fstree = { path = "../fstree" }
 spinlock = { path = "../../crates/spinlock" }

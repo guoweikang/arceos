@@ -1,0 +1,42 @@
+[package]
+name = "axmount"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[features]
+devfs = ["dep:axfs_devfs"]
+ramfs = ["dep:axfs_ramfs"]
+procfs = ["dep:axfs_ramfs"]
+sysfs = ["dep:axfs_ramfs"]
+fatfs = ["dep:fatfs"]
+myfs = ["dep:crate_interface"]
+use-ramdisk = []
+
+default = ["devfs", "ramfs", "fatfs", "procfs", "sysfs"]
+
+[dependencies]
+log = "0.4"
+cfg-if = "1.0"
+axdriver = { path = "../axdriver", features = ["block"] }
+fstree = { path = "../fstree" }
+task = { path = "../task" }
+axfs_devfs = { path = "../../crates/axfs_devfs", optional = true }
+axfs_ramfs = { path = "../../crates/axfs_ramfs", optional = true }
+crate_interface = { path = "../../crates/crate_interface", optional = true }
+axfs_vfs = { path = "../../crates/axfs_vfs" }
+spinlock = { path = "../../crates/spinlock" }
+lazy_init = { path = "../../crates/lazy_init" }
+
+[dependencies.fatfs]
+git = "https://github.com/rafalh/rust-fatfs"
+rev = "a3a834e"
+optional = true
+default-features = false
+features = [ # no std
+    "alloc",
+    "lfn",
+    "log_level_trace",
+    "unicode",
+]

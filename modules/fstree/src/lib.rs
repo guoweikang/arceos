@@ -51,6 +51,7 @@ impl FsStruct {
 impl FsStruct {
     fn parent_node_of(&self, dir: Option<&VfsNodeRef>, path: &str) -> VfsNodeRef {
         if path.starts_with('/') {
+            assert!(self.root_dir.is_some());
             self.root_dir.clone().unwrap()
         } else {
             dir.cloned().unwrap_or_else(|| self.curr_dir.clone().unwrap())

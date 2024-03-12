@@ -12,3 +12,5 @@ run_queue = { path = "../run_queue" }
 fork = { path = "../fork" }
 exec = { path = "../exec" }
 axerrno = { path = "../../crates/axerrno" }
+axdriver = { path = "../axdriver" }
+axmount = { path = "../axmount" }

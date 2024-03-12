@@ -14,6 +14,7 @@ use alloc::sync::Arc;
 use axhal::arch::TaskContext as ThreadStruct;
 use mm::MmStruct;
 use spinlock::SpinNoIrq;
+use fstree::FsStruct;
 
 pub type Pid = usize;
 
@@ -52,6 +53,7 @@ pub struct TaskStruct {
 
     mm: OnceCell<Arc<SpinNoIrq<MmStruct>>>,
     pub active_mm_id: AtomicUsize,
+    pub fs: Arc<SpinNoIrq<FsStruct>>,
 
     /* CPU-specific state of this task: */
     pub thread: UnsafeCell<ThreadStruct>,
@@ -72,6 +74,7 @@ impl TaskStruct {
 
             mm: OnceCell::new(),
             active_mm_id: AtomicUsize::new(0),
+            fs: Arc::new(SpinNoIrq::new(FsStruct::new())),
 
             thread: UnsafeCell::new(ThreadStruct::new()),
         }
@@ -93,7 +96,9 @@ impl TaskStruct {
 
     pub fn dup_task_struct(&self) -> Arc<Self> {
         error!("dup_task_struct ...");
-        Arc::new(Self::new())
+        let mut tsk = Self::new();
+        tsk.fs = self.fs.clone();
+        Arc::new(tsk)
     }
 
     pub fn get_task_pid(&self) -> Pid {

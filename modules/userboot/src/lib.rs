@@ -12,6 +12,9 @@ pub fn start() {
 
     task::init();
     run_queue::init();
+
+    let all_devices = axdriver::init_drivers();
+    axmount::init_filesystems(all_devices.block);
     rest_init();
 }
 
