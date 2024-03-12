@@ -4,11 +4,15 @@ mod macros;
 mod context;
 mod trap;
 
+use core::cell::OnceCell;
 use memory_addr::{PhysAddr, VirtAddr};
 use riscv::asm;
 use riscv::register::{satp, sstatus, stvec};
+use crate::paging::PageTable;
 
 pub use self::context::{GeneralRegisters, TaskContext, TrapFrame};
+
+static mut KERNEL_PAGE_TABLE: OnceCell<PageTable> = OnceCell::new();
 
 /// Allows the current CPU to respond to interrupts.
 #[inline]
@@ -106,4 +110,15 @@ pub fn read_thread_pointer() -> usize {
 #[inline]
 pub unsafe fn write_thread_pointer(tp: usize) {
     core::arch::asm!("mv tp, {}", in(reg) tp)
+}
+
+pub fn setup_page_table_root(pt: PageTable) {
+    unsafe {
+        let _ = KERNEL_PAGE_TABLE.set(pt);
+        write_page_table_root(KERNEL_PAGE_TABLE.get().unwrap().root_paddr());
+    }
+}
+
+pub fn dup_kernel_pg_dir() -> PageTable {
+    unsafe { KERNEL_PAGE_TABLE.get().unwrap().clone() }
 }

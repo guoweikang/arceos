@@ -315,6 +315,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "axfile"
+version = "0.1.0"
+dependencies = [
+ "axerrno",
+ "axfs_vfs",
+ "axio",
+ "capability",
+ "fstree",
+ "log",
+]
+
+[[package]]
 name = "axfs"
 version = "0.1.0"
 dependencies = [
@@ -995,6 +1007,7 @@ dependencies = [
  "log",
  "memory_addr",
  "mmap",
+ "task",
 ]
 
 [[package]]
@@ -1031,6 +1044,15 @@ dependencies = [
  "memory_addr",
  "run_queue",
  "task",
+]
+
+[[package]]
+name = "fstree"
+version = "0.1.0"
+dependencies = [
+ "axerrno",
+ "axfs_vfs",
+ "log",
 ]
 
 [[package]]
@@ -1289,11 +1311,29 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "68354c5c6bd36d73ff3feceb05efa59b6acb7626617f4962be322a825e61f79a"
 
 [[package]]
+name = "mm"
+version = "0.1.0"
+dependencies = [
+ "axalloc",
+ "axfile",
+ "axhal",
+ "axio",
+ "log",
+ "memory_addr",
+ "spinlock",
+]
+
+[[package]]
 name = "mmap"
 version = "0.1.0"
 dependencies = [
+ "axalloc",
  "axerrno",
+ "axhal",
+ "log",
  "memory_addr",
+ "mm",
+ "task",
 ]
 
 [[package]]
@@ -1847,6 +1887,8 @@ version = "0.1.0"
 dependencies = [
  "axhal",
  "log",
+ "mm",
+ "spinlock",
 ]
 
 [[package]]

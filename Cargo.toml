@@ -78,6 +78,9 @@ members = [
     "modules/run_queue",
     "modules/exec",
     "modules/mmap",
+    "modules/mm",
+    "modules/axfile",
+    "modules/fstree",
 ]
 
 [profile.release]

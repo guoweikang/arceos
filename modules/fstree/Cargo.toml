@@ -1,5 +1,5 @@
 [package]
-name = "exec"
+name = "fstree"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,7 +7,5 @@ edition = "2021"
 
 [dependencies]
 log = "0.4"
-mmap = { path = "../mmap" }
-task = { path = "../task" }
+axfs_vfs = { path = "../../crates/axfs_vfs" }
 axerrno = { path = "../../crates/axerrno" }
-memory_addr = { path = "../../crates/memory_addr" }

@@ -1,5 +1,5 @@
 [package]
-name = "exec"
+name = "mm"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,7 +7,9 @@ edition = "2021"
 
 [dependencies]
 log = "0.4"
-mmap = { path = "../mmap" }
-task = { path = "../task" }
-axerrno = { path = "../../crates/axerrno" }
+axhal = { path = "../axhal" }
+axalloc = { path = "../axalloc" }
+axfile = { path = "../axfile" }
+axio = { path = "../../crates/axio" }
 memory_addr = { path = "../../crates/memory_addr" }
+spinlock = { path = "../../crates/spinlock" }

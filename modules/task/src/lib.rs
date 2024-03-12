@@ -3,7 +3,8 @@
 use core::ops::Deref;
 use core::mem::ManuallyDrop;
 use core::sync::atomic::{AtomicUsize, Ordering};
-use core::{alloc::Layout, cell::UnsafeCell, fmt, ptr::NonNull};
+use core::{alloc::Layout, cell::UnsafeCell, ptr::NonNull};
+use core::cell::OnceCell;
 
 #[macro_use]
 extern crate log;
@@ -11,6 +12,8 @@ extern crate alloc;
 use alloc::sync::Arc;
 
 use axhal::arch::TaskContext as ThreadStruct;
+use mm::MmStruct;
+use spinlock::SpinNoIrq;
 
 pub type Pid = usize;
 
@@ -47,6 +50,9 @@ pub struct TaskStruct {
 
     pub entry: Option<*mut dyn FnOnce()>,
 
+    mm: OnceCell<Arc<SpinNoIrq<MmStruct>>>,
+    pub active_mm_id: AtomicUsize,
+
     /* CPU-specific state of this task: */
     pub thread: UnsafeCell<ThreadStruct>,
 }
@@ -64,12 +70,25 @@ impl TaskStruct {
 
             entry: None,
 
+            mm: OnceCell::new(),
+            active_mm_id: AtomicUsize::new(0),
+
             thread: UnsafeCell::new(ThreadStruct::new()),
         }
     }
 
     pub fn pid(&self) -> usize {
         self.pid
+    }
+
+    pub fn mm(&self) -> Arc<SpinNoIrq<MmStruct>> {
+        self.mm.get().expect("NOT a user process.").clone()
+    }
+
+    pub fn alloc_mm(&self) {
+        error!("alloc_mm...");
+        assert!(self.mm.get().is_none());
+        self.mm.set(Arc::new(SpinNoIrq::new(MmStruct::new())));
     }
 
     pub fn dup_task_struct(&self) -> Arc<Self> {

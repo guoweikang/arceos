@@ -6,5 +6,10 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+log = "0.4"
+axhal = { path = "../axhal" }
+task = { path = "../task" }
+mm = { path = "../mm" }
 axerrno = { path = "../../crates/axerrno" }
 memory_addr = { path = "../../crates/memory_addr" }
+axalloc = { path = "../axalloc" }

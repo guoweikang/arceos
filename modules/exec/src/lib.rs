@@ -11,24 +11,25 @@ const TASK_SIZE: usize = 0x40_0000_0000;
 pub fn kernel_execve(filename: &str) -> LinuxResult {
     error!("kernel_execve... {}", filename);
 
-    // TODO: Move it into system starting process.
-    setup_zero_page();
+    let task = task::current();
+    task.alloc_mm();
+
+    // TODO: Move it into kernel_init().
+    setup_zero_page()?;
 
     let sp = get_arg_page()?;
-    assert_eq!(sp, 0);
     bprm_execve(filename, 0)
 }
 
-fn setup_zero_page() {
-    mmap::mmap(0x0, PAGE_SIZE_4K, 0, 0, 0, 0);
-    unimplemented!("get_arg_page!");
+fn setup_zero_page() -> LinuxResult {
+    error!("setup_zero_page ...");
+    mmap::mmap(0x0, PAGE_SIZE_4K, 0, 0, 0, 0)
 }
 
 fn get_arg_page() -> LinuxResult<usize> {
-    /*
     let va = TASK_SIZE - PAGE_SIZE_4K;
-    vm::mmap(va, PAGE_SIZE_4K, 0, 0, 0, 0);
-    let direct_va = vm::faultin_page(va);
+    mmap::mmap(va, PAGE_SIZE_4K, 0, 0, 0, 0);
+    let direct_va = mmap::faultin_page(va);
     let stack = unsafe {
         core::slice::from_raw_parts_mut(
             direct_va as *mut usize, 4
@@ -38,8 +39,8 @@ fn get_arg_page() -> LinuxResult<usize> {
     stack[1] = TASK_SIZE - 16;
     stack[2] = 0;
     stack[3] = 0;
-    */
-    unimplemented!("get_arg_page!");
+    error!("get_arg_page!");
+    Ok(TASK_SIZE - 32)
 }
 
 /// sys_execve() executes a new program.

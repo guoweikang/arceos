@@ -1,5 +1,5 @@
 [package]
-name = "exec"
+name = "axfile"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,7 +7,8 @@ edition = "2021"
 
 [dependencies]
 log = "0.4"
-mmap = { path = "../mmap" }
-task = { path = "../task" }
+axio = { path = "../../crates/axio", features = ["alloc"] }
 axerrno = { path = "../../crates/axerrno" }
-memory_addr = { path = "../../crates/memory_addr" }
+axfs_vfs = { path = "../../crates/axfs_vfs" }
+capability = { path = "../../crates/capability" }
+fstree = { path = "../fstree" }
