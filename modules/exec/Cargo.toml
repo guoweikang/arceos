@@ -12,3 +12,6 @@ task = { path = "../task" }
 axfile = { path = "../axfile" }
 axerrno = { path = "../../crates/axerrno" }
 memory_addr = { path = "../../crates/memory_addr" }
+elf = { path = "../../crates/elf" }
+axio = { path = "../../crates/axio" }
+spinlock = { path = "../../crates/spinlock" }

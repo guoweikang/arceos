@@ -7,6 +7,7 @@ extern crate alloc;
 
 use alloc::collections::BTreeMap;
 use alloc::sync::Arc;
+use core::cell::OnceCell;
 use axfile::fops::File;
 use axhal::arch::dup_kernel_pg_dir;
 use axhal::mem::{phys_to_virt, virt_to_phys};
@@ -24,13 +25,15 @@ use memory_addr::PAGE_SHIFT;
 use memory_addr::PAGE_SIZE_4K;
 use spinlock::SpinNoIrq;
 
+pub type FileRef = Arc<SpinNoIrq<File>>;
+
 static MM_UNIQUE_ID: AtomicUsize = AtomicUsize::new(1);
 
 pub struct VmAreaStruct {
     pub vm_start: usize,
     pub vm_end: usize,
     pub vm_pgoff: usize,
-    pub vm_file: Option<Arc<SpinNoIrq<File>>>,
+    pub vm_file: OnceCell<Arc<SpinNoIrq<File>>>,
     pub vm_flags: usize,
 }
 
@@ -39,16 +42,20 @@ impl VmAreaStruct {
         vm_start: usize,
         vm_end: usize,
         vm_pgoff: usize,
-        vm_file: Option<Arc<SpinNoIrq<File>>>,
+        vm_file: Option<FileRef>,
         vm_flags: usize,
     ) -> Self {
-        Self {
+        let vma = Self {
             vm_start,
             vm_end,
             vm_pgoff,
-            vm_file,
+            vm_file: OnceCell::new(),
             vm_flags,
+        };
+        if let Some(f) = vm_file {
+            vma.vm_file.set(f);
         }
+        vma
     }
 }
 

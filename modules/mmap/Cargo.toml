@@ -8,8 +8,10 @@ edition = "2021"
 [dependencies]
 log = "0.4"
 axhal = { path = "../axhal" }
+axfile = { path = "../axfile" }
 task = { path = "../task" }
 mm = { path = "../mm" }
 axerrno = { path = "../../crates/axerrno" }
 memory_addr = { path = "../../crates/memory_addr" }
+spinlock = { path = "../../crates/spinlock" }
 axalloc = { path = "../axalloc" }

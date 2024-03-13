@@ -958,6 +958,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a26ae43d7bcc3b814de94796a5e736d4029efb0ee900c12e2d54c993ad1a1e07"
 
 [[package]]
+name = "elf"
+version = "0.7.4"
+
+[[package]]
 name = "embedded-graphics"
 version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1023,9 +1027,12 @@ version = "0.1.0"
 dependencies = [
  "axerrno",
  "axfile",
+ "axio",
+ "elf",
  "log",
  "memory_addr",
  "mmap",
+ "spinlock",
  "task",
 ]
 
@@ -1348,10 +1355,12 @@ version = "0.1.0"
 dependencies = [
  "axalloc",
  "axerrno",
+ "axfile",
  "axhal",
  "log",
  "memory_addr",
  "mm",
+ "spinlock",
  "task",
 ]
 
