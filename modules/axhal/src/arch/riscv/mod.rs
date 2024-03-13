@@ -10,7 +10,12 @@ use riscv::asm;
 use riscv::register::{satp, sstatus, stvec};
 use crate::paging::PageTable;
 
-pub use self::context::{GeneralRegisters, TaskContext, TrapFrame};
+pub use self::context::{GeneralRegisters, TaskContext, TrapFrame, TRAPFRAME_SIZE, STACK_ALIGN};
+
+/// Status register flags
+pub const SR_SPIE:      usize = 0x00000020;  /* Previous Supervisor IE */
+pub const SR_FS_INITIAL:usize = 0x00002000;
+pub const SR_UXL_64:    usize = 0x200000000; /* XLEN = 64 for U-mode */
 
 static mut KERNEL_PAGE_TABLE: OnceCell<PageTable> = OnceCell::new();
 

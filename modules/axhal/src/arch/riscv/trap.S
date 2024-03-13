@@ -70,14 +70,8 @@ trap_vector_base:
 
 .section .text
 .balign 4
-.global start_app
-start_app:
-    addi    sp, sp, -{trapframe_size}
-
-    li      t2, 0x0000000200002020
-    STR     t2, sp, 32                  // tf.sstatus
-    STR     t0, sp, 31                  // tf.sepc
-    STR     t1, sp, 1                   // tf.regs.sp(app stack)
+.global ret_from_fork
+ret_from_fork:
+    mv sp, a0
     RESTORE_REGS 1
-    mv      a0, zero
     sret

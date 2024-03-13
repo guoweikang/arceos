@@ -11,3 +11,4 @@ axhal = { path = "../axhal" }
 mm = { path = "../mm" }
 fstree = { path = "../fstree" }
 spinlock = { path = "../../crates/spinlock" }
+memory_addr = { path = "../../crates/memory_addr" }

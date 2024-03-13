@@ -20,6 +20,8 @@ use axio::SeekFrom;
 use spinlock::SpinNoIrq;
 //use mm::MmStruct;
 use mmap::FileRef;
+use axhal::arch::TrapFrame;
+use axhal::arch::{SR_SPIE, SR_FS_INITIAL, SR_UXL_64};
 
 const ELF_HEAD_BUF_SIZE: usize = 256;
 const TASK_SIZE: usize = 0x40_0000_0000;
@@ -62,8 +64,7 @@ fn get_arg_page() -> LinuxResult<usize> {
 /// sys_execve() executes a new program.
 fn bprm_execve(filename: &str, flags: usize) -> LinuxResult {
     let file = do_open_execat(filename, flags)?;
-    exec_binprm(file)?;
-    unimplemented!("bprm_execve... {}", filename);
+    exec_binprm(file)
 }
 
 fn do_open_execat(filename: &str, flags: usize) -> LinuxResult<FileRef> {
@@ -77,8 +78,7 @@ fn do_open_execat(filename: &str, flags: usize) -> LinuxResult<FileRef> {
 }
 
 fn exec_binprm(file: FileRef) -> LinuxResult {
-    load_elf_binary(file)?;
-    unimplemented!("exec_binprm ...");
+    load_elf_binary(file)
 }
 
 fn load_elf_binary(file: FileRef) -> LinuxResult {
@@ -110,7 +110,7 @@ fn load_elf_binary(file: FileRef) -> LinuxResult {
     set_brk(elf_bss, elf_brk);
 
     start_thread(entry, TASK_SIZE - 32);
-    unimplemented!("load_elf_binary...");
+    Ok(())
 }
 
 fn set_brk(elf_bss: usize, elf_brk: usize) {
@@ -152,18 +152,13 @@ fn load_elf_phdrs(file: FileRef) -> LinuxResult<(Vec<ProgramHeader>, usize)> {
     Ok((phdrs, ehdr.e_entry as usize))
 }
 
-fn start_thread(entry: usize, sp: usize) {
-    // execute app
-    unsafe { core::arch::asm!("
-        jalr    t2
-        j       .",
-        in("t0") entry,
-        in("t1") sp,
-        in("t2") start_app,
-    )};
-
-    extern "C" {
-        fn start_app();
-    }
-    unimplemented!("start_thread");
+fn start_thread(pc: usize, sp: usize) {
+    let mut tf = unsafe {
+        core::slice::from_raw_parts_mut(
+            task::current().pt_regs() as *mut TrapFrame, 1
+        )
+    };
+    tf[0].sepc = pc;
+    tf[0].sstatus = SR_SPIE | SR_FS_INITIAL | SR_UXL_64;
+    tf[0].regs.sp = sp;
 }

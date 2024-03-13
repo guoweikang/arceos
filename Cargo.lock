@@ -1043,6 +1043,7 @@ version = "0.1.0"
 dependencies = [
  "axerrno",
  "axfile",
+ "axhal",
  "axio",
  "elf",
  "log",
@@ -1081,6 +1082,7 @@ dependencies = [
 name = "fork"
 version = "0.1.0"
 dependencies = [
+ "axhal",
  "bitflags 2.4.0",
  "log",
  "memory_addr",
@@ -1933,6 +1935,7 @@ dependencies = [
  "axhal",
  "fstree",
  "log",
+ "memory_addr",
  "mm",
  "spinlock",
 ]

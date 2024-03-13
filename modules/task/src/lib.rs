@@ -16,6 +16,10 @@ use mm::MmStruct;
 use mm::switch_mm;
 use spinlock::SpinNoIrq;
 use fstree::FsStruct;
+use memory_addr::{align_up_4k, align_down, PAGE_SIZE_4K};
+use axhal::arch::{TRAPFRAME_SIZE, STACK_ALIGN};
+
+pub const THREAD_SIZE: usize = 2 * PAGE_SIZE_4K;
 
 pub type Pid = usize;
 
@@ -56,6 +60,7 @@ pub struct TaskStruct {
     pub active_mm_id: AtomicUsize,
     pub fs: Arc<SpinNoIrq<FsStruct>>,
 
+    pub kstack: Option<TaskStack>,
     /* CPU-specific state of this task: */
     pub thread: UnsafeCell<ThreadStruct>,
 }
@@ -77,12 +82,17 @@ impl TaskStruct {
             active_mm_id: AtomicUsize::new(0),
             fs: Arc::new(SpinNoIrq::new(FsStruct::new())),
 
+            kstack: None,
             thread: UnsafeCell::new(ThreadStruct::new()),
         }
     }
 
     pub fn pid(&self) -> usize {
         self.pid
+    }
+
+    pub fn pt_regs(&self) -> usize {
+        self.kstack.as_ref().unwrap().top() - align_down(TRAPFRAME_SIZE, STACK_ALIGN)
     }
 
     pub fn try_mm(&self) -> Option<Arc<SpinNoIrq<MmStruct>>> {

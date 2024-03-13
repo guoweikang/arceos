@@ -9,6 +9,7 @@ edition = "2021"
 log = "0.4"
 mmap = { path = "../mmap" }
 task = { path = "../task" }
+axhal = { path = "../axhal" }
 axfile = { path = "../axfile" }
 axerrno = { path = "../../crates/axerrno" }
 memory_addr = { path = "../../crates/memory_addr" }

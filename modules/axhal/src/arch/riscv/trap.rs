@@ -1,13 +1,13 @@
 use riscv::register::scause::{self, Exception as E, Trap};
 use riscv::register::stval;
 
-use super::TrapFrame;
+use super::{TrapFrame, TRAPFRAME_SIZE};
 
 include_asm_marcos!();
 
 core::arch::global_asm!(
     include_str!("trap.S"),
-    trapframe_size = const core::mem::size_of::<TrapFrame>(),
+    trapframe_size = const TRAPFRAME_SIZE,
 );
 
 fn handle_breakpoint(sepc: &mut usize) {

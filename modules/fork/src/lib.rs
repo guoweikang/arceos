@@ -8,7 +8,7 @@ use alloc::boxed::Box;
 use alloc::string::String;
 
 use task::{current, TaskRef, Pid, TaskStack};
-use memory_addr::{align_up_4k, PAGE_SIZE_4K};
+use memory_addr::{align_up_4k, align_down, PAGE_SIZE_4K};
 
 bitflags::bitflags! {
     /// clone flags
@@ -78,8 +78,11 @@ impl KernelCloneArgs {
         let task = Arc::get_mut(task).expect("userd by other threads!");
         assert!(self.entry.is_some());
         task.entry = self.entry;
-        let kstack = TaskStack::alloc(align_up_4k(2*PAGE_SIZE_4K));
-        task.thread.get_mut().init(task_entry as usize, kstack.top().into(), 0.into());
+        let kstack = TaskStack::alloc(align_up_4k(task::THREAD_SIZE));
+        task.kstack = Some(kstack);
+        let sp = task.pt_regs();
+        error!("copy_thread ... kernel_sp: {:#X}", sp);
+        task.thread.get_mut().init(task_entry as usize, sp.into(), 0.into());
         error!("copy_thread!");
     }
 }
@@ -94,14 +97,30 @@ extern "C" fn task_entry() -> ! {
         unsafe { Box::from_raw(entry)() };
     }
 
-    ret_from_fork();
+    let sp = task::current().pt_regs();
+    unsafe { ret_from_fork(sp) };
+
+    extern "Rust" {
+        fn ret_from_fork(sp: usize);
+    }
     unimplemented!("task_entry!");
 }
 
+/*
 /// Return to userland from kernel.
 fn ret_from_fork() {
-    unimplemented!("ret_from_fork");
+    use axhal::arch::TrapFrame;
+    let tf = unsafe {
+        core::slice::from_raw_parts(
+            task::current().pt_regs() as *const TrapFrame, 1
+        )
+    };
+    //tf[0].sstatus = SR_SPIE | SR_FS_INITIAL | SR_UXL_64;
+    //tf[0].regs.sp = sp;
+    unimplemented!("ret_from_fork {:#X} {:#X} {:#X}",
+                   tf[0].sepc, tf[0].regs.sp, tf[0].sstatus);
 }
+*/
 
 /// Create a user thread
 ///
