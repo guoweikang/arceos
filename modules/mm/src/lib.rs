@@ -14,6 +14,7 @@ use axhal::mem::{phys_to_virt, virt_to_phys};
 use axhal::paging::MappingFlags;
 use axhal::paging::PageTable;
 use axhal::paging::PagingResult;
+use axhal::arch::write_page_table_root;
 use axio::SeekFrom;
 use core::cell::RefCell;
 use core::ops::Bound;
@@ -165,5 +166,17 @@ impl MmStruct {
         }
         buf[pos..].fill(0);
         info!("OK");
+    }
+}
+
+pub fn switch_mm(prev_mm_id: usize, next_mm: Arc<SpinNoIrq<MmStruct>>) {
+    let locked_next_mm = next_mm.lock();
+    if prev_mm_id == locked_next_mm.id {
+        return;
+    }
+    error!("###### switch prev {} next {}; paddr{:#X}",
+        prev_mm_id, locked_next_mm.id, locked_next_mm.root_paddr());
+    unsafe {
+        write_page_table_root(locked_next_mm.root_paddr().into());
     }
 }

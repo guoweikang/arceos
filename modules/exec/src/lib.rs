@@ -154,7 +154,6 @@ fn load_elf_phdrs(file: FileRef) -> LinuxResult<(Vec<ProgramHeader>, usize)> {
 
 fn start_thread(entry: usize, sp: usize) {
     // execute app
-    /*
     unsafe { core::arch::asm!("
         jalr    t2
         j       .",
@@ -166,6 +165,5 @@ fn start_thread(entry: usize, sp: usize) {
     extern "C" {
         fn start_app();
     }
-    */
     unimplemented!("start_thread");
 }

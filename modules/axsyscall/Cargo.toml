@@ -1,0 +1,17 @@
+[package]
+name = "axsyscall"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+axhal = { path = "../axhal" }
+task = { path = "../task" }
+mmap = { path = "../mmap" }
+axalloc = { path = "../axalloc" }
+
+scheduler = { path = "../../crates/scheduler" }
+log = "0.4"
+crate_interface = { path = "../../crates/crate_interface" }
+memory_addr = { path = "../../crates/memory_addr" }

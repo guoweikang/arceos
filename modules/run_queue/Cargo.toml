@@ -13,6 +13,7 @@ sched_cfs = []
 [dependencies]
 log = "0.4"
 cfg-if = "1.0"
+mm = { path = "../mm" }
 task = { path = "../task" }
 spinlock = { path = "../../crates/spinlock" }
 lazy_init = { path = "../../crates/lazy_init" }

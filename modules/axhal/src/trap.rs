@@ -1,6 +1,7 @@
 //! Trap handling.
 
 use crate_interface::{call_interface, def_interface};
+use crate::arch::TrapFrame;
 
 /// Trap handler interface.
 ///
@@ -13,11 +14,27 @@ use crate_interface::{call_interface, def_interface};
 pub trait TrapHandler {
     /// Handles interrupt requests for the given IRQ number.
     fn handle_irq(irq_num: usize);
-    // more e.g.: handle_page_fault();
+    fn handle_page_fault(badaddr: usize, cause: usize);
 }
 
 /// Call the external IRQ handler.
 #[allow(dead_code)]
 pub(crate) fn handle_irq_extern(irq_num: usize) {
     call_interface!(TrapHandler::handle_irq, irq_num);
+}
+
+/// Call page fault handler.
+pub(crate) fn handle_page_fault(badaddr: usize, cause: usize) {
+    call_interface!(TrapHandler::handle_page_fault, badaddr, cause);
+}
+
+#[def_interface]
+pub trait SyscallHandler {
+    fn handle_syscall(tf: &mut TrapFrame);
+}
+
+/// Call the syscall handler.
+#[allow(dead_code)]
+pub(crate) fn handle_linux_syscall(tf: &mut TrapFrame) {
+    call_interface!(SyscallHandler::handle_syscall, tf);
 }

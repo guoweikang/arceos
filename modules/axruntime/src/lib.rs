@@ -182,6 +182,10 @@ pub extern "C" fn rust_main(cpu_id: usize, dtb: usize) -> ! {
         init_tls();
     }
 
+    {
+        axsyscall::init();
+    }
+
     info!("Primary CPU {} init OK.", cpu_id);
     INITED_CPUS.fetch_add(1, Ordering::Relaxed);
 

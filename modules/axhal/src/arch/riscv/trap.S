@@ -10,19 +10,23 @@
     STR     t2, sp, 1                   // tf.regs.sp
 
 .if \from_user == 1
+    LDR     t1, sp, 2                   // load supervisor gp
     LDR     t0, sp, 3                   // load supervisor tp
     STR     gp, sp, 2                   // save user gp and tp
     STR     tp, sp, 3
     mv      tp, t0
+    mv      gp, t1
 .endif
 .endm
 
 .macro RESTORE_REGS, from_user
 .if \from_user == 1
-    LDR     gp, sp, 2                   // load user gp and tp
+    LDR     t1, sp, 2                   // load user gp and tp
     LDR     t0, sp, 3
+    STR     gp, sp, 2                   // save supervisor gp
     STR     tp, sp, 3                   // save supervisor tp
     mv      tp, t0
+    mv      gp, t1
     addi    t0, sp, {trapframe_size}    // put supervisor sp to scratch
     csrw    sscratch, t0
 .endif
@@ -62,4 +66,18 @@ trap_vector_base:
     li      a1, 1
     call    riscv_trap_handler
     RESTORE_REGS 1
+    sret
+
+.section .text
+.balign 4
+.global start_app
+start_app:
+    addi    sp, sp, -{trapframe_size}
+
+    li      t2, 0x0000000200002020
+    STR     t2, sp, 32                  // tf.sstatus
+    STR     t0, sp, 31                  // tf.sepc
+    STR     t1, sp, 1                   // tf.regs.sp(app stack)
+    RESTORE_REGS 1
+    mv      a0, zero
     sret

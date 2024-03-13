@@ -1,4 +1,5 @@
 use riscv::register::scause::{self, Exception as E, Trap};
+use riscv::register::stval;
 
 use super::TrapFrame;
 
@@ -19,6 +20,16 @@ fn riscv_trap_handler(tf: &mut TrapFrame, _from_user: bool) {
     let scause = scause::read();
     match scause.cause() {
         Trap::Exception(E::Breakpoint) => handle_breakpoint(&mut tf.sepc),
+        Trap::Exception(E::UserEnvCall) => crate::trap::handle_linux_syscall(tf),
+        Trap::Exception(E::InstructionPageFault) => {
+            crate::trap::handle_page_fault(stval::read(), 0);
+        },
+        Trap::Exception(E::LoadPageFault) => {
+            crate::trap::handle_page_fault(stval::read(), 1);
+        },
+        Trap::Exception(E::StorePageFault) => {
+            crate::trap::handle_page_fault(stval::read(), 2);
+        },
         Trap::Interrupt(_) => crate::trap::handle_irq_extern(scause.bits()),
         _ => {
             panic!(

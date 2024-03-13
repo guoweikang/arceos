@@ -13,6 +13,7 @@ use alloc::sync::Arc;
 
 use axhal::arch::TaskContext as ThreadStruct;
 use mm::MmStruct;
+use mm::switch_mm;
 use spinlock::SpinNoIrq;
 use fstree::FsStruct;
 
@@ -84,6 +85,10 @@ impl TaskStruct {
         self.pid
     }
 
+    pub fn try_mm(&self) -> Option<Arc<SpinNoIrq<MmStruct>>> {
+        self.mm.get().and_then(|mm| Some(mm.clone()))
+    }
+
     pub fn mm(&self) -> Arc<SpinNoIrq<MmStruct>> {
         self.mm.get().expect("NOT a user process.").clone()
     }
@@ -92,6 +97,7 @@ impl TaskStruct {
         error!("alloc_mm...");
         assert!(self.mm.get().is_none());
         self.mm.set(Arc::new(SpinNoIrq::new(MmStruct::new())));
+        switch_mm(0, self.mm());
     }
 
     pub fn dup_task_struct(&self) -> Arc<Self> {
@@ -170,6 +176,11 @@ pub fn current() -> CurrentTask {
 /// ready task.
 pub fn yield_now() {
     unimplemented!("yield_now");
+}
+
+/// Exits the current task.
+pub fn exit(exit_code: i32) -> ! {
+    unimplemented!("exit");
 }
 
 pub fn init() {

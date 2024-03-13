@@ -19,16 +19,17 @@ pub fn mmap(
     file: Option<FileRef>, offset: usize
 ) -> LinuxResult {
     assert!(is_aligned_4k(len));
+    error!("mmap va {:#X} offset {:#X}", va, offset);
 
     let mm = task::current().mm();
     let vma = VmAreaStruct::new(va, va + len, offset >> PAGE_SHIFT, file, flags);
     mm.lock().vmas.insert(va, vma);
 
-    error!("mmap!");
     Ok(())
 }
 
 pub fn faultin_page(va: usize) -> usize {
+    error!("faultin_page... va {:#X}", va);
     let mm = task::current().mm();
     let locked_mm = mm.lock();
 
@@ -56,6 +57,5 @@ pub fn faultin_page(va: usize) -> usize {
         locked_mm.fill_cache(pa, PAGE_SIZE_4K, &mut f.lock(), offset);
     }
     let _ = locked_mm.map_region(va, pa, PAGE_SIZE_4K, 1);
-    error!("faultin_page...");
     phys_to_virt(pa.into()).into()
 }

@@ -11,6 +11,8 @@ use crate::{AxTaskRef, Scheduler, TaskInner, WaitQueue};
 use core::cell::OnceCell;
 use spinlock::SpinNoIrq;
 use task::TaskRef;
+use core::sync::atomic::Ordering;
+use mm::switch_mm;
 
 cfg_if::cfg_if! {
     if #[cfg(feature = "sched_rr")] {
@@ -191,6 +193,33 @@ impl AxRunQueue {
         //next_task.set_state(TaskState::Running);
         if prev_task.ptr_eq(&next_task) {
             return;
+        }
+
+        // Switch mm from prev to next
+        // kernel ->   user   switch + mmdrop_lazy_tlb() active
+        //   user ->   user   switch
+        // kernel -> kernel   lazy + transfer active
+        //   user -> kernel   lazy + mmgrab_lazy_tlb() active
+        match next_task.try_mm() {
+            Some(ref next_mm) => {
+                switch_mm(
+                    prev_task.active_mm_id.load(Ordering::SeqCst),
+                    next_mm.clone()
+                );
+            },
+            None => {
+                error!("###### {} {};",
+                   prev_task.active_mm_id.load(Ordering::SeqCst),
+                   next_task.active_mm_id.load(Ordering::SeqCst));
+
+                next_task.active_mm_id.store(
+                    prev_task.active_mm_id.load(Ordering::SeqCst),
+                    Ordering::SeqCst
+                );
+            }
+        }
+        if prev_task.try_mm().is_none() {
+            prev_task.active_mm_id.store(0, Ordering::SeqCst);
         }
 
         unsafe {

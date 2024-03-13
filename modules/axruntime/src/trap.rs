@@ -10,4 +10,7 @@ impl axhal::trap::TrapHandler for TrapHandlerImpl {
             drop(guard); // rescheduling may occur when preemption is re-enabled.
         }
     }
+    fn handle_page_fault(badaddr: usize, _cause: usize) {
+        mmap::faultin_page(badaddr);
+    }
 }
