@@ -188,6 +188,7 @@ dependencies = [
  "axnet",
  "axruntime",
  "axtask",
+ "mkboot",
 ]
 
 [[package]]
@@ -311,6 +312,7 @@ dependencies = [
  "axruntime",
  "axsync",
  "axtask",
+ "mkboot",
  "spinlock",
 ]
 
@@ -1314,7 +1316,6 @@ name = "macrokernel"
 version = "0.1.0"
 dependencies = [
  "axstd",
- "userboot",
 ]
 
 [[package]]
@@ -1353,6 +1354,18 @@ name = "minimal-lexical"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "68354c5c6bd36d73ff3feceb05efa59b6acb7626617f4962be322a825e61f79a"
+
+[[package]]
+name = "mkboot"
+version = "0.1.0"
+dependencies = [
+ "axalloc",
+ "axhal",
+ "axlog",
+ "axsyscall",
+ "crate_interface",
+ "mmap",
+]
 
 [[package]]
 name = "mm"

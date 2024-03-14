@@ -12,6 +12,9 @@ documentation = "https://rcore-os.github.io/arceos/axfeat/index.html"
 [features]
 default = []
 
+unikernel = ["dep:axruntime"]
+monolithic = ["mkboot", "axalloc", "axhal/paging", "axdriver/virtio-blk"]
+
 # Multicore
 smp = ["axhal/smp", "axruntime/smp", "spinlock/smp"]
 
@@ -61,7 +64,8 @@ log-level-debug = ["axlog/log-level-debug"]
 log-level-trace = ["axlog/log-level-trace"]
 
 [dependencies]
-axruntime = { path = "../../modules/axruntime" }
+axruntime = { path = "../../modules/axruntime", optional = true }
+mkboot = { path = "../../modules/mkboot", optional = true }
 axhal = { path = "../../modules/axhal" }
 axlog = { path = "../../modules/axlog" }
 axalloc = { path = "../../modules/axalloc", optional = true }

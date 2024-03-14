@@ -1,0 +1,17 @@
+[package]
+name = "mkboot"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[features]
+default = []
+
+[dependencies]
+axhal = { path = "../axhal" }
+axlog = { path = "../axlog" }
+axalloc = { path = "../axalloc" }
+mmap = { path = "../mmap" }
+axsyscall = { path = "../axsyscall" }
+crate_interface = { path = "../../crates/crate_interface" }

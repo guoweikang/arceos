@@ -6,6 +6,5 @@ use axstd::println;
 
 #[cfg_attr(feature = "axstd", no_mangle)]
 fn main() {
-    println!("Macro Kernel is starting ...\n");
-    userboot::start();
+    println!("MacroKernel: Never reach here!\n");
 }

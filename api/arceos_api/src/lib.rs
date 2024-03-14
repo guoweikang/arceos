@@ -16,7 +16,10 @@
     feature = "dummy-if-not-enabled"
 ))]
 extern crate alloc;
+#[cfg(feature = "unikernel")]
 extern crate axruntime;
+#[cfg(feature = "monolithic")]
+extern crate mkboot;
 
 #[macro_use]
 mod macros;

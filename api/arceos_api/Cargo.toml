@@ -12,6 +12,9 @@ documentation = "https://rcore-os.github.io/arceos/arceos_api/index.html"
 [features]
 default = []
 
+unikernel = ["dep:axruntime"]
+monolithic = ["mkboot"]
+
 irq = ["axfeat/irq"]
 alloc = ["dep:axalloc", "axfeat/alloc"]
 multitask = ["axtask/multitask", "axfeat/multitask"]
@@ -26,7 +29,8 @@ dummy-if-not-enabled = []
 
 [dependencies]
 axfeat = { path = "../axfeat" }
-axruntime = { path = "../../modules/axruntime" }
+axruntime = { path = "../../modules/axruntime", optional = true }
+mkboot = { path = "../../modules/mkboot", optional = true }
 axconfig = { path = "../../modules/axconfig" }
 axlog = { path = "../../modules/axlog" }
 axio = { path = "../../crates/axio" }

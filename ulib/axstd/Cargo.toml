@@ -19,6 +19,8 @@ documentation = "https://rcore-os.github.io/arceos/axstd/index.html"
 [features]
 default = []
 
+monolithic = ["arceos_api/monolithic", "axfeat/monolithic"]
+
 # Multicore
 smp = ["axfeat/smp", "spinlock/smp"]
 
