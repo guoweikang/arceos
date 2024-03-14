@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
-default = ["percpu", "kernel_guard"]
+default = ["axhal/irq", "percpu", "kernel_guard"]
 
 [dependencies]
 axhal = { path = "../axhal" }

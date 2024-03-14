@@ -60,16 +60,17 @@ impl AxRunQueue {
         self.scheduler.add_task(item);
     }
 
-/*
-    #[cfg(feature = "irq")]
     pub fn scheduler_timer_tick(&mut self) {
-        let curr = crate::current();
-        if !curr.is_idle() && self.scheduler.task_tick(curr.as_task_ref()) {
+        let curr = task::current();
+        if self.scheduler.task_tick(
+            &Arc::new(SchedItem::new(curr.as_task_ref().clone()))
+        ) {
             #[cfg(feature = "preempt")]
             curr.set_preempt_pending(true);
         }
     }
 
+/*
     pub fn yield_current(&mut self) {
         let curr = crate::current();
         trace!("task yield: {}", curr.id_name());
@@ -235,6 +236,7 @@ impl AxRunQueue {
         }
     }
 }
+
 /*
 
 fn gc_entry() {

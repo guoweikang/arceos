@@ -155,6 +155,11 @@ impl CurrentTask {
         Arc::ptr_eq(&self, other)
     }
 
+    /// Converts [`CurrentTask`] to [`TaskRef`].
+    pub fn as_task_ref(&self) -> &TaskRef {
+        &self.0
+    }
+
     pub(crate) unsafe fn init_current(init_task: TaskRef) {
         error!("CurrentTask::init_current...");
         let ptr = Arc::into_raw(init_task);

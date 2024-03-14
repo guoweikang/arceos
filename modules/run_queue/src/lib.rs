@@ -20,3 +20,10 @@ pub fn task_rq(_task: &TaskRef) -> &SpinNoIrq<AxRunQueue> {
 pub fn force_unlock() {
     unsafe { RUN_QUEUE.force_unlock() }
 }
+
+/// Handles periodic timer ticks for the task manager.
+///
+/// For example, advance scheduler states, checks timed events, etc.
+pub fn on_timer_tick() {
+    RUN_QUEUE.lock().scheduler_timer_tick();
+}

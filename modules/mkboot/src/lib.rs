@@ -118,7 +118,7 @@ pub extern "C" fn rust_main(cpu_id: usize, dtb: usize) -> ! {
     self::mp::start_secondary_cpus(cpu_id);
 
     info!("Initialize interrupt handlers...");
-    //init_interrupt();
+    init_interrupt();
 
     axsyscall::init();
 
@@ -186,7 +186,6 @@ fn remap_kernel_memory() -> Result<(), axhal::paging::PagingError> {
     Ok(())
 }
 
-/*
 fn init_interrupt() {
     use axhal::time::TIMER_IRQ_NUM;
 
@@ -210,13 +209,12 @@ fn init_interrupt() {
 
     axhal::irq::register_handler(TIMER_IRQ_NUM, || {
         update_timer();
-        task::on_timer_tick();
+        run_queue::on_timer_tick();
     });
 
     // Enable IRQs before starting app
     axhal::arch::enable_irqs();
 }
-*/
 
 fn rest_init() {
     error!("rest_init ...");
