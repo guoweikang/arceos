@@ -124,6 +124,13 @@ pub fn setup_page_table_root(pt: PageTable) {
     }
 }
 
+pub fn reuse_page_table_root() {
+    unsafe {
+        assert!(KERNEL_PAGE_TABLE.get().is_some());
+        write_page_table_root(KERNEL_PAGE_TABLE.get().unwrap().root_paddr());
+    }
+}
+
 pub fn dup_kernel_pg_dir() -> PageTable {
     unsafe { KERNEL_PAGE_TABLE.get().unwrap().clone() }
 }

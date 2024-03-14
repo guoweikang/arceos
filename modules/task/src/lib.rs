@@ -16,7 +16,7 @@ use mm::MmStruct;
 use mm::switch_mm;
 use spinlock::SpinNoIrq;
 use fstree::FsStruct;
-use memory_addr::{align_up_4k, align_down, PAGE_SIZE_4K};
+use memory_addr::{align_down, PAGE_SIZE_4K};
 use axhal::arch::{TRAPFRAME_SIZE, STACK_ALIGN};
 
 pub const THREAD_SIZE: usize = 2 * PAGE_SIZE_4K;
@@ -91,6 +91,10 @@ impl TaskStruct {
         self.pid
     }
 
+    pub fn tgid(&self) -> usize {
+        self.tgid
+    }
+
     pub fn pt_regs(&self) -> usize {
         self.kstack.as_ref().unwrap().top() - align_down(TRAPFRAME_SIZE, STACK_ALIGN)
     }
@@ -106,7 +110,7 @@ impl TaskStruct {
     pub fn alloc_mm(&self) {
         error!("alloc_mm...");
         assert!(self.mm.get().is_none());
-        self.mm.set(Arc::new(SpinNoIrq::new(MmStruct::new())));
+        let _ = self.mm.set(Arc::new(SpinNoIrq::new(MmStruct::new())));
         switch_mm(0, self.mm());
     }
 
@@ -190,7 +194,7 @@ pub fn yield_now() {
 
 /// Exits the current task.
 pub fn exit(exit_code: i32) -> ! {
-    unimplemented!("exit");
+    unimplemented!("exit {}", exit_code);
 }
 
 pub fn init() {

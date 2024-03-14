@@ -4,18 +4,15 @@
 #[macro_use]
 extern crate log;
 extern crate alloc;
-use alloc::sync::Arc;
-use axerrno::{LinuxError, LinuxResult};
+use axerrno::LinuxResult;
 use mm::VmAreaStruct;
-use memory_addr::{is_aligned_4k, align_down_4k, align_up_4k, PAGE_SIZE_4K, PAGE_SHIFT};
+use memory_addr::{is_aligned_4k, align_down_4k, PAGE_SIZE_4K, PAGE_SHIFT};
 use core::ops::Bound;
 use axhal::mem::{phys_to_virt, virt_to_phys};
-use axfile::fops::File;
-use spinlock::SpinNoIrq;
 pub use mm::FileRef;
 
 pub fn mmap(
-    va: usize, len: usize, prot: usize, flags: usize,
+    va: usize, len: usize, _prot: usize, flags: usize,
     file: Option<FileRef>, offset: usize
 ) -> LinuxResult {
     assert!(is_aligned_4k(len));
@@ -43,7 +40,7 @@ pub fn faultin_page(va: usize) -> usize {
     );
     let va = align_down_4k(va);
     let delta = va - vma.vm_start;
-    let flags = vma.vm_flags;
+    //let flags = vma.vm_flags;
     let offset = (vma.vm_pgoff << PAGE_SHIFT) + delta;
 
     let pa = axalloc::global_allocator()

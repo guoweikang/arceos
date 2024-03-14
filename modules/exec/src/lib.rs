@@ -6,7 +6,7 @@ extern crate alloc;
 use alloc::vec::Vec;
 use alloc::sync::Arc;
 
-use axerrno::{LinuxError, LinuxResult};
+use axerrno::LinuxResult;
 use memory_addr::{align_down_4k, align_up_4k, PAGE_SIZE_4K};
 use axfile::fops::File;
 use axfile::fops::OpenOptions;
@@ -36,7 +36,7 @@ pub fn kernel_execve(filename: &str) -> LinuxResult {
     setup_zero_page()?;
 
     let sp = get_arg_page()?;
-    bprm_execve(filename, 0)
+    bprm_execve(filename, 0, sp)
 }
 
 fn setup_zero_page() -> LinuxResult {
@@ -46,7 +46,7 @@ fn setup_zero_page() -> LinuxResult {
 
 fn get_arg_page() -> LinuxResult<usize> {
     let va = TASK_SIZE - PAGE_SIZE_4K;
-    mmap::mmap(va, PAGE_SIZE_4K, 0, 0, None, 0);
+    mmap::mmap(va, PAGE_SIZE_4K, 0, 0, None, 0)?;
     let direct_va = mmap::faultin_page(va);
     let stack = unsafe {
         core::slice::from_raw_parts_mut(
@@ -62,12 +62,12 @@ fn get_arg_page() -> LinuxResult<usize> {
 }
 
 /// sys_execve() executes a new program.
-fn bprm_execve(filename: &str, flags: usize) -> LinuxResult {
+fn bprm_execve(filename: &str, flags: usize, sp: usize) -> LinuxResult {
     let file = do_open_execat(filename, flags)?;
-    exec_binprm(file)
+    exec_binprm(file, sp)
 }
 
-fn do_open_execat(filename: &str, flags: usize) -> LinuxResult<FileRef> {
+fn do_open_execat(filename: &str, _flags: usize) -> LinuxResult<FileRef> {
     let mut opts = OpenOptions::new();
     opts.read(true);
 
@@ -77,11 +77,11 @@ fn do_open_execat(filename: &str, flags: usize) -> LinuxResult<FileRef> {
     Ok(Arc::new(SpinNoIrq::new(file)))
 }
 
-fn exec_binprm(file: FileRef) -> LinuxResult {
-    load_elf_binary(file)
+fn exec_binprm(file: FileRef, sp: usize) -> LinuxResult {
+    load_elf_binary(file, sp)
 }
 
-fn load_elf_binary(file: FileRef) -> LinuxResult {
+fn load_elf_binary(file: FileRef, sp: usize) -> LinuxResult {
     let (phdrs, entry) = load_elf_phdrs(file.clone())?;
 
     let mut elf_bss: usize = 0;
@@ -94,7 +94,7 @@ fn load_elf_binary(file: FileRef) -> LinuxResult {
 
         let va = align_down_4k(phdr.p_vaddr as usize);
         let va_end = align_up_4k((phdr.p_vaddr + phdr.p_filesz) as usize);
-        mmap::mmap(va, va_end - va, 0, 1, Some(file.clone()), phdr.p_offset as usize);
+        mmap::mmap(va, va_end - va, 0, 1, Some(file.clone()), phdr.p_offset as usize)?;
 
         let pos = (phdr.p_vaddr + phdr.p_filesz) as usize;
         if elf_bss < pos {
@@ -109,7 +109,7 @@ fn load_elf_binary(file: FileRef) -> LinuxResult {
     error!("set brk...");
     set_brk(elf_bss, elf_brk);
 
-    start_thread(entry, TASK_SIZE - 32);
+    start_thread(entry, sp);
     Ok(())
 }
 
@@ -118,7 +118,7 @@ fn set_brk(elf_bss: usize, elf_brk: usize) {
     let elf_brk = align_up_4k(elf_brk);
     if elf_bss < elf_brk {
         error!("{:#X} < {:#X}", elf_bss, elf_brk);
-        mmap::mmap(elf_bss, elf_brk - elf_bss, 0, 0, None, 0);
+        mmap::mmap(elf_bss, elf_brk - elf_bss, 0, 0, None, 0).unwrap();
     }
 
     task::current().mm().lock().set_brk(elf_brk as usize)
@@ -153,7 +153,7 @@ fn load_elf_phdrs(file: FileRef) -> LinuxResult<(Vec<ProgramHeader>, usize)> {
 }
 
 fn start_thread(pc: usize, sp: usize) {
-    let mut tf = unsafe {
+    let tf = unsafe {
         core::slice::from_raw_parts_mut(
             task::current().pt_regs() as *mut TrapFrame, 1
         )

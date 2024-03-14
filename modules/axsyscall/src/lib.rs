@@ -228,7 +228,7 @@ fn linux_syscall_brk(tf: &TrapFrame) -> usize {
         assert!(is_aligned_4k(offset));
         //let n = offset >> PAGE_SHIFT;
         //let pa = alloc_pages(n, PAGE_SIZE_4K);
-        mmap::mmap(brk, offset, 0, 0, None, 0);
+        mmap::mmap(brk, offset, 0, 0, None, 0).unwrap();
         let _ = mmap::faultin_page(brk);
         //map_region(brk, pa, n*PAGE_SIZE_4K, 1);
         mm.lock().set_brk(va);

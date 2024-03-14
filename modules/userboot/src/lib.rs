@@ -14,7 +14,9 @@ pub fn start() {
     run_queue::init();
 
     let all_devices = axdriver::init_drivers();
-    axmount::init_filesystems(all_devices.block);
+    let main_fs = axmount::init_filesystems(all_devices.block);
+    let root_dir = axmount::init_rootfs(main_fs);
+    task::current().fs.lock().init(root_dir);
     rest_init();
 }
 

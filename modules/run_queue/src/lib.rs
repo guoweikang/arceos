@@ -1,6 +1,6 @@
 #![no_std]
 
-use task::{current, TaskRef, Pid, TaskStack};
+use task::{current, TaskRef};
 use crate::run_queue::{RUN_QUEUE, AxRunQueue};
 use spinlock::SpinNoIrq;
 

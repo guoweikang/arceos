@@ -8,7 +8,6 @@ use alloc::collections::VecDeque;
 
 use crate::{AxTaskRef, Scheduler, TaskInner, WaitQueue};
 */
-use core::cell::OnceCell;
 use spinlock::SpinNoIrq;
 use task::TaskRef;
 use core::sync::atomic::Ordering;
@@ -46,7 +45,7 @@ pub struct AxRunQueue {
 
 impl AxRunQueue {
     pub fn new() -> SpinNoIrq<Self> {
-        let mut scheduler = Scheduler::new();
+        let scheduler = Scheduler::new();
         SpinNoIrq::new(Self { scheduler })
     }
 

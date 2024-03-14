@@ -27,7 +27,7 @@ impl Drop for MountPoint {
     }
 }
 
-struct RootDirectory {
+pub struct RootDirectory {
     main_fs: Arc<dyn VfsOps>,
     mounts: Vec<MountPoint>,
 }
@@ -45,6 +45,12 @@ impl FsStruct {
             curr_dir: None,
             root_dir: None,
         }
+    }
+
+    pub fn init(&mut self, root_dir: Arc<RootDirectory>) {
+        self.root_dir = Some(root_dir);
+        self.curr_dir = Some(self.root_dir.as_ref().unwrap().clone());
+        self.curr_path = "/".into();
     }
 }
 
@@ -276,37 +282,5 @@ impl VfsNodeOps for RootDirectory {
                 fs.root_dir().rename(rest_path, dst_path)
             }
         })
-    }
-}
-
-impl FsStruct {
-    pub fn init_rootfs(&mut self, main_fs: Arc<dyn VfsOps>) {
-        let mut root_dir = RootDirectory::new(main_fs);
-
-        #[cfg(feature = "devfs")]
-        root_dir
-            .mount("/dev", mounts::devfs())
-            .expect("failed to mount devfs at /dev");
-
-        #[cfg(feature = "ramfs")]
-        root_dir
-            .mount("/tmp", mounts::ramfs())
-            .expect("failed to mount ramfs at /tmp");
-
-        // Mount another ramfs as procfs
-        #[cfg(feature = "procfs")]
-        root_dir // should not fail
-            .mount("/proc", mounts::procfs().unwrap())
-            .expect("fail to mount procfs at /proc");
-
-        // Mount another ramfs as sysfs
-        #[cfg(feature = "sysfs")]
-        root_dir // should not fail
-            .mount("/sys", mounts::sysfs().unwrap())
-            .expect("fail to mount sysfs at /sys");
-
-        self.root_dir = Some(Arc::new(root_dir));
-        self.curr_dir = Some(self.root_dir.as_ref().unwrap().clone());
-        self.curr_path = "/".into();
     }
 }

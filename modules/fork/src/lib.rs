@@ -8,7 +8,7 @@ use alloc::boxed::Box;
 use alloc::string::String;
 
 use task::{current, TaskRef, Pid, TaskStack};
-use memory_addr::{align_up_4k, align_down, PAGE_SIZE_4K};
+use memory_addr::align_up_4k;
 
 bitflags::bitflags! {
     /// clone flags
@@ -50,7 +50,7 @@ impl KernelCloneArgs {
 
     /// Do kernel_clone to clone a new kernel thread.
     fn perform(&self) -> Pid {
-        error!("kernel_clone ...");
+        error!("kernel_clone {} {:#X} ...", self.name, self.exit_signal);
         let trace = !self.flags.contains(CloneFlags::CLONE_UNTRACED);
         assert!(!trace);
 
@@ -90,7 +90,7 @@ impl KernelCloneArgs {
 extern "C" fn task_entry() -> ! {
     // schedule_tail
     // unlock runqueue for freshly created task
-    unsafe { run_queue::force_unlock() };
+    run_queue::force_unlock();
 
     let task = crate::current();
     if let Some(entry) = task.entry {

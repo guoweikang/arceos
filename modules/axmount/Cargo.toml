@@ -20,8 +20,8 @@ default = ["devfs", "ramfs", "fatfs", "procfs", "sysfs"]
 log = "0.4"
 cfg-if = "1.0"
 axdriver = { path = "../axdriver", features = ["block"] }
-fstree = { path = "../fstree" }
 task = { path = "../task" }
+fstree = { path = "../fstree" }
 axfs_devfs = { path = "../../crates/axfs_devfs", optional = true }
 axfs_ramfs = { path = "../../crates/axfs_ramfs", optional = true }
 crate_interface = { path = "../../crates/crate_interface", optional = true }
