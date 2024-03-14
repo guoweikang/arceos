@@ -6,12 +6,22 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
-default = []
+default = ["percpu", "kernel_guard"]
 
 [dependencies]
 axhal = { path = "../axhal" }
+axconfig = { path = "../axconfig" }
 axlog = { path = "../axlog" }
 axalloc = { path = "../axalloc" }
 mmap = { path = "../mmap" }
 axsyscall = { path = "../axsyscall" }
+task = { path = "../task" }
+run_queue = { path = "../run_queue" }
+axdriver = { path = "../axdriver" }
+axmount = { path = "../axmount" }
 crate_interface = { path = "../../crates/crate_interface" }
+percpu = { path = "../../crates/percpu", optional = true }
+kernel_guard = { path = "../../crates/kernel_guard", optional = true }
+fork = { path = "../fork" }
+exec = { path = "../exec" }
+axerrno = { path = "../../crates/axerrno" }

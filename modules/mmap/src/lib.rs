@@ -26,7 +26,7 @@ pub fn mmap(
 }
 
 pub fn faultin_page(va: usize) -> usize {
-    debug!("faultin_page... va {:#X}", va);
+    error!("faultin_page... va {:#X}", va);
     let mm = task::current().mm();
     let locked_mm = mm.lock();
 

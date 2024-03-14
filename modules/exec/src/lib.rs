@@ -109,6 +109,7 @@ fn load_elf_binary(file: FileRef, sp: usize) -> LinuxResult {
     error!("set brk...");
     set_brk(elf_bss, elf_brk);
 
+    error!("start thread...");
     start_thread(entry, sp);
     Ok(())
 }

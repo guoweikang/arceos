@@ -1360,11 +1360,21 @@ name = "mkboot"
 version = "0.1.0"
 dependencies = [
  "axalloc",
+ "axconfig",
+ "axdriver",
+ "axerrno",
  "axhal",
  "axlog",
+ "axmount",
  "axsyscall",
  "crate_interface",
+ "exec",
+ "fork",
+ "kernel_guard",
  "mmap",
+ "percpu",
+ "run_queue",
+ "task",
 ]
 
 [[package]]
