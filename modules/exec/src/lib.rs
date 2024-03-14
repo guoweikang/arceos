@@ -48,6 +48,7 @@ fn get_arg_page() -> LinuxResult<usize> {
     let va = TASK_SIZE - PAGE_SIZE_4K;
     mmap::mmap(va, PAGE_SIZE_4K, 0, 0, None, 0)?;
     let direct_va = mmap::faultin_page(va);
+    let direct_va = direct_va + PAGE_SIZE_4K - 32;
     let stack = unsafe {
         core::slice::from_raw_parts_mut(
             direct_va as *mut usize, 4
@@ -57,7 +58,7 @@ fn get_arg_page() -> LinuxResult<usize> {
     stack[1] = TASK_SIZE - 16;
     stack[2] = 0;
     stack[3] = 0;
-    error!("get_arg_page!");
+
     Ok(TASK_SIZE - 32)
 }
 
