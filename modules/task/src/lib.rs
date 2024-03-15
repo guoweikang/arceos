@@ -115,7 +115,7 @@ impl TaskStruct {
     }
 
     pub fn dup_task_struct(&self) -> Arc<Self> {
-        error!("dup_task_struct ...");
+        debug!("dup_task_struct ...");
         let mut tsk = Self::new();
         tsk.fs = self.fs.clone();
         Arc::new(tsk)

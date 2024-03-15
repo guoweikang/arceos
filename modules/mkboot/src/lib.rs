@@ -219,7 +219,7 @@ fn init_interrupt() {
 fn rest_init() {
     error!("rest_init ...");
     let pid = user_mode_thread(
-        || {
+        move || {
             kernel_init();
         },
         CloneFlags::CLONE_FS,

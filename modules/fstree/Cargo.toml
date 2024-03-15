@@ -9,3 +9,4 @@ edition = "2021"
 log = "0.4"
 axfs_vfs = { path = "../../crates/axfs_vfs" }
 axerrno = { path = "../../crates/axerrno" }
+spinlock = { path = "../../crates/spinlock" }

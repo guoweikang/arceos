@@ -7,6 +7,7 @@ extern crate alloc;
 use axerrno::{ax_err, AxError, AxResult};
 use alloc::{string::String, sync::Arc, vec::Vec};
 use axfs_vfs::{VfsNodeAttr, VfsNodeOps, VfsNodeRef, VfsNodeType, VfsOps, VfsResult};
+use spinlock::SpinNoIrq;
 
 pub type FileType = axfs_vfs::VfsNodeType;
 
@@ -33,6 +34,8 @@ pub struct RootDirectory {
 }
 
 pub struct FsStruct {
+    pub users: i32,
+    pub in_exec: bool,
     curr_path: String,
     curr_dir: Option<VfsNodeRef>,
     root_dir: Option<Arc<RootDirectory>>,
@@ -41,6 +44,8 @@ pub struct FsStruct {
 impl FsStruct {
     pub fn new() -> Self {
         Self {
+            users: 1,
+            in_exec: false,
             curr_path: String::from("/"),
             curr_dir: None,
             root_dir: None,
@@ -51,6 +56,13 @@ impl FsStruct {
         self.root_dir = Some(root_dir);
         self.curr_dir = Some(self.root_dir.as_ref().unwrap().clone());
         self.curr_path = "/".into();
+    }
+
+    pub fn copy_fs_struct(&mut self, fs: Arc<SpinNoIrq<FsStruct>>) {
+        let locked_fs = &fs.lock();
+        self.root_dir = locked_fs.root_dir.as_ref().map(|root_dir| root_dir.clone());
+        self.curr_dir = locked_fs.curr_dir.as_ref().map(|curr_dir| curr_dir.clone());
+        self.curr_path = locked_fs.curr_path.clone();
     }
 }
 

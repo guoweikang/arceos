@@ -1084,11 +1084,13 @@ dependencies = [
 name = "fork"
 version = "0.1.0"
 dependencies = [
+ "axerrno",
  "axhal",
  "bitflags 2.4.0",
  "log",
  "memory_addr",
  "run_queue",
+ "spinlock",
  "task",
 ]
 
@@ -1099,6 +1101,7 @@ dependencies = [
  "axerrno",
  "axfs_vfs",
  "log",
+ "spinlock",
 ]
 
 [[package]]

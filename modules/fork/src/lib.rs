@@ -9,6 +9,7 @@ use alloc::string::String;
 
 use task::{current, TaskRef, Pid, TaskStack};
 use memory_addr::align_up_4k;
+use axerrno::{LinuxResult, LinuxError};
 
 bitflags::bitflags! {
     /// clone flags
@@ -30,47 +31,80 @@ bitflags::bitflags! {
 
 struct KernelCloneArgs {
     flags: CloneFlags,
-    name: String,
-    exit_signal: u32,
+    _name: String,
+    _exit_signal: u32,
     entry: Option<*mut dyn FnOnce()>,
 }
 
 impl KernelCloneArgs {
     fn new(
-        flags: CloneFlags, name: String, exit_signal: u32,
+        flags: CloneFlags, name: &str, exit_signal: u32,
         entry: Option<*mut dyn FnOnce()>
     ) -> Self {
         Self {
             flags,
-            name,
-            exit_signal,
+            _name: String::from(name),
+            _exit_signal: exit_signal,
             entry,
         }
     }
 
-    /// Do kernel_clone to clone a new kernel thread.
-    fn perform(&self) -> Pid {
-        error!("kernel_clone {} {:#X} ...", self.name, self.exit_signal);
+    /// The main fork-routine, as kernel_clone in linux kernel.
+    ///
+    /// It copies the process, and if successful kick-starts it and
+    /// waits for it to finish using the VM if required.
+    /// The arg *exit_signal* is expected to be checked for sanity
+    /// by the caller.
+    fn perform(&self) -> LinuxResult<Pid> {
         let trace = !self.flags.contains(CloneFlags::CLONE_UNTRACED);
+        // Todo: ptrace
         assert!(!trace);
 
-        let task = self.copy_process(None, trace);
-        self.wake_up_new_task(&task);
-        task.get_task_pid()
+        let task = self.copy_process(None, trace)?;
+        debug!("sched task fork: pid[{}] -> pid[{}].", task::current().pid(), task.pid());
+
+        let pid = task.get_task_pid();
+        self.wake_up_new_task(task);
+        Ok(pid)
     }
 
-    fn wake_up_new_task(&self, task: &TaskRef) {
-        let rq = run_queue::task_rq(task);
+    /// Wake up a newly created task for the first time.
+    ///
+    /// This function will do some initial scheduler statistics housekeeping
+    /// that must be done for every newly created context, then puts the task
+    /// on the runqueue and wakes it.
+    fn wake_up_new_task(&self, task: TaskRef) {
+        let rq = run_queue::task_rq(&task);
         rq.lock().activate_task(task.clone());
-        error!("wake_up_new_task");
+        debug!("wakeup the new task[{}].", task.pid());
     }
 
-    fn copy_process(&self, _pid: Option<Pid>, trace: bool) -> TaskRef {
-        error!("copy_process...");
+    fn copy_process(&self, _pid: Option<Pid>, trace: bool) -> LinuxResult<TaskRef> {
+        debug!("copy_process...");
         assert!(!trace);
         let mut task = current().dup_task_struct();
+        //copy_files();
+        self.copy_fs(&mut task)?;
+        //copy_sighand();
+        //copy_signal();
+        //copy_mm();
         self.copy_thread(&mut task);
-        task
+        Ok(task)
+    }
+
+    fn copy_fs(&self, task: &mut TaskRef) -> LinuxResult {
+        if self.flags.contains(CloneFlags::CLONE_FS) {
+            /* task.fs is already what we want */
+            let fs = task::current().fs.clone();
+            let mut locked_fs = fs.lock();
+            if locked_fs.in_exec {
+                return Err(LinuxError::EAGAIN);
+            }
+            locked_fs.users += 1;
+            return Ok(());
+        }
+        task.fs.lock().copy_fs_struct(task::current().fs.clone());
+        Ok(())
     }
 
     fn copy_thread(&self, task: &mut TaskRef) {
@@ -106,32 +140,18 @@ extern "C" fn task_entry() -> ! {
     unimplemented!("task_entry!");
 }
 
-/*
-/// Return to userland from kernel.
-fn ret_from_fork() {
-    use axhal::arch::TrapFrame;
-    let tf = unsafe {
-        core::slice::from_raw_parts(
-            task::current().pt_regs() as *const TrapFrame, 1
-        )
-    };
-    //tf[0].sstatus = SR_SPIE | SR_FS_INITIAL | SR_UXL_64;
-    //tf[0].regs.sp = sp;
-    unimplemented!("ret_from_fork {:#X} {:#X} {:#X}",
-                   tf[0].sepc, tf[0].regs.sp, tf[0].sstatus);
-}
-*/
-
-/// Create a user thread
+/// Create a user mode thread.
 ///
 /// Invoke `f` to do some preparations before entering userland.
 pub fn user_mode_thread<F>(f: F, flags: CloneFlags) -> Pid
 where
     F: FnOnce() + 'static,
 {
-    error!("user_mode_thread ...");
+    debug!("create a user mode thread ...");
     assert!((flags.bits() & CloneFlags::CSIGNAL.bits()) == 0);
     let f = Box::into_raw(Box::new(f));
-    let args = KernelCloneArgs::new(flags | CloneFlags::CLONE_VM | CloneFlags::CLONE_UNTRACED, "".into(), 0, Some(f));
-    args.perform()
+    let args = KernelCloneArgs::new(
+        flags | CloneFlags::CLONE_VM | CloneFlags::CLONE_UNTRACED, "", 0, Some(f)
+    );
+    args.perform().expect("kernel_clone failed.")
 }
