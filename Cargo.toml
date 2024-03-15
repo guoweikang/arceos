@@ -72,7 +72,6 @@ members = [
     "apps/task/tls",
 
     "apps/macrokernel",
-    "modules/userboot",
     "modules/fork",
     "modules/task",
     "modules/run_queue",
