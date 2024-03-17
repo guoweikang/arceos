@@ -19,7 +19,7 @@ use fstree::FsStruct;
 use memory_addr::{align_down, PAGE_SIZE_4K};
 use axhal::arch::{TRAPFRAME_SIZE, STACK_ALIGN};
 
-pub const THREAD_SIZE: usize = 2 * PAGE_SIZE_4K;
+pub const THREAD_SIZE: usize = 32 * PAGE_SIZE_4K;
 
 pub type Pid = usize;
 

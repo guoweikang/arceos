@@ -18,8 +18,8 @@ pub fn mmap(
     assert!(is_aligned_4k(len));
     error!("mmap va {:#X} offset {:#X}", va, offset);
 
-    let mm = task::current().mm();
     let vma = VmAreaStruct::new(va, va + len, offset >> PAGE_SHIFT, file, flags);
+    let mm = task::current().mm();
     mm.lock().vmas.insert(va, vma);
 
     Ok(())

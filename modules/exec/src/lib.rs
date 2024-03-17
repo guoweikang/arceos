@@ -5,26 +5,26 @@ extern crate log;
 extern crate alloc;
 use alloc::vec::Vec;
 use alloc::sync::Arc;
+use core::str::from_utf8;
 
 use axerrno::LinuxResult;
 use memory_addr::{align_down_4k, align_up_4k, PAGE_SIZE_4K};
 use axfile::fops::File;
 use axfile::fops::OpenOptions;
 use elf::segment::ProgramHeader;
-use elf::abi::PT_LOAD;
+use elf::abi::{PT_LOAD, PT_INTERP};
 use elf::endian::AnyEndian;
 use elf::ElfBytes;
 use elf::segment::SegmentTable;
 use elf::parse::ParseAt;
 use axio::SeekFrom;
 use spinlock::SpinNoIrq;
-//use mm::MmStruct;
 use mmap::FileRef;
 use axhal::arch::TrapFrame;
 use axhal::arch::{SR_SPIE, SR_FS_INITIAL, SR_UXL_64};
+use axhal::arch::{TASK_SIZE, ELF_ET_DYN_BASE};
 
 const ELF_HEAD_BUF_SIZE: usize = 256;
-const TASK_SIZE: usize = 0x40_0000_0000;
 
 pub fn kernel_execve(filename: &str) -> LinuxResult {
     error!("kernel_execve... {}", filename);
@@ -36,7 +36,7 @@ pub fn kernel_execve(filename: &str) -> LinuxResult {
     setup_zero_page()?;
 
     let sp = get_arg_page()?;
-    bprm_execve(filename, 0, sp)
+    bprm_execve(filename, 0, sp, 0)
 }
 
 fn setup_zero_page() -> LinuxResult {
@@ -63,9 +63,11 @@ fn get_arg_page() -> LinuxResult<usize> {
 }
 
 /// sys_execve() executes a new program.
-fn bprm_execve(filename: &str, flags: usize, sp: usize) -> LinuxResult {
+fn bprm_execve(
+    filename: &str, flags: usize, sp: usize, load_bias: usize
+) -> LinuxResult {
     let file = do_open_execat(filename, flags)?;
-    exec_binprm(file, sp)
+    exec_binprm(file, sp, load_bias)
 }
 
 fn do_open_execat(filename: &str, _flags: usize) -> LinuxResult<FileRef> {
@@ -78,24 +80,41 @@ fn do_open_execat(filename: &str, _flags: usize) -> LinuxResult<FileRef> {
     Ok(Arc::new(SpinNoIrq::new(file)))
 }
 
-fn exec_binprm(file: FileRef, sp: usize) -> LinuxResult {
-    load_elf_binary(file, sp)
+fn exec_binprm(file: FileRef, sp: usize, load_bias: usize) -> LinuxResult {
+    load_elf_binary(file, sp, load_bias)
 }
 
-fn load_elf_binary(file: FileRef, sp: usize) -> LinuxResult {
+fn load_elf_binary(file: FileRef, sp: usize, load_bias: usize) -> LinuxResult {
     let (phdrs, entry) = load_elf_phdrs(file.clone())?;
+
+    for phdr in &phdrs {
+        if phdr.p_type == PT_INTERP {
+            error!("Interp: phdr: offset: {:#X}=>{:#X} size: {:#X}=>{:#X}",
+                phdr.p_offset, phdr.p_vaddr, phdr.p_filesz, phdr.p_memsz);
+            let mut path: [u8; 256] = [0; 256];
+            let _ = file.lock().seek(SeekFrom::Start(phdr.p_offset as u64));
+            let ret = file.lock().read(&mut path).unwrap();
+            let path = &path[0..phdr.p_filesz as usize];
+            let path = from_utf8(&path).expect("Interpreter path isn't valid UTF-8");
+            let path = path.trim_matches(char::from(0));
+            error!("PT_INTERP ret {} {:?}!", ret, path);
+            // Todo: check elf_ex->e_type == ET_DYN
+            let load_bias = align_down_4k(ELF_ET_DYN_BASE);
+            return bprm_execve(path, 0, sp, load_bias);
+        }
+    }
 
     let mut elf_bss: usize = 0;
     let mut elf_brk: usize = 0;
 
     error!("There are {} PT_LOAD segments", phdrs.len());
-    for phdr in phdrs {
+    for phdr in &phdrs {
         error!("phdr: offset: {:#X}=>{:#X} size: {:#X}=>{:#X}",
             phdr.p_offset, phdr.p_vaddr, phdr.p_filesz, phdr.p_memsz);
 
         let va = align_down_4k(phdr.p_vaddr as usize);
         let va_end = align_up_4k((phdr.p_vaddr + phdr.p_filesz) as usize);
-        mmap::mmap(va, va_end - va, 0, 1, Some(file.clone()), phdr.p_offset as usize)?;
+        mmap::mmap(va + load_bias, va_end - va, 0, 1, Some(file.clone()), phdr.p_offset as usize)?;
 
         let pos = (phdr.p_vaddr + phdr.p_filesz) as usize;
         if elf_bss < pos {
@@ -106,6 +125,10 @@ fn load_elf_binary(file: FileRef, sp: usize) -> LinuxResult {
             elf_brk = pos;
         }
     }
+
+    let entry = entry + load_bias;
+    elf_bss += load_bias;
+    elf_brk += load_bias;
 
     error!("set brk...");
     set_brk(elf_bss, elf_brk);
@@ -149,7 +172,7 @@ fn load_elf_phdrs(file: FileRef) -> LinuxResult<(Vec<ProgramHeader>, usize)> {
 
     let phdrs: Vec<ProgramHeader> = phdrs
         .iter()
-        .filter(|phdr|{phdr.p_type == PT_LOAD})
+        .filter(|phdr|{phdr.p_type == PT_LOAD || phdr.p_type == PT_INTERP})
         .collect();
     Ok((phdrs, ehdr.e_entry as usize))
 }

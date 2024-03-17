@@ -15,7 +15,7 @@ struct LinuxSyscallHandler;
 impl SyscallHandler for LinuxSyscallHandler {
     fn handle_syscall(tf: &mut TrapFrame) {
         let eid = tf.regs.a7;
-        info!("Syscall: {:#x}", eid);
+        error!("Syscall: {:#x}", eid);
         tf.regs.a0 = match eid {
             LINUX_SYSCALL_WRITE => {
                 linux_syscall_write(tf)
@@ -115,7 +115,7 @@ fn linux_syscall_writev(tf: &TrapFrame) -> usize {
         debug!("iov: {:#X} {:#X}", iov.iov_base, iov.iov_len);
         let bytes = unsafe { slice::from_raw_parts(iov.iov_base as *const _, iov.iov_len) };
         let s = String::from_utf8(bytes.into());
-        debug!("{}", s.unwrap());
+        error!("{}", s.unwrap());
     }
     disable_user_access();
 

@@ -25,8 +25,11 @@ endef
 define build_linux_image
   @mkdir -p ./mnt
   @sudo mount $(1) ./mnt
+  @sudo mkdir -p ./mnt/lib
   @sudo mkdir -p ./mnt/sbin
-  @sudo cp ./payload/init ./mnt/sbin
+  @sudo cp ./payload/ld-linux-riscv64-lp64d.so.1 ./mnt/lib/
+  @sudo cp ./payload/init ./mnt/sbin/
+  ls -l ./mnt/lib
   @sudo umount ./mnt
   @rm -rf mnt
 endef
