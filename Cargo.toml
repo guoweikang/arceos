@@ -80,6 +80,7 @@ members = [
     "modules/mm",
     "modules/axfile",
     "modules/fstree",
+    "modules/filetable",
     "modules/mkboot",
 ]
 

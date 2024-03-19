@@ -16,6 +16,7 @@ use mm::MmStruct;
 use mm::switch_mm;
 use spinlock::SpinNoIrq;
 use fstree::FsStruct;
+use filetable::FileTable;
 use memory_addr::{align_down, PAGE_SIZE_4K};
 use axhal::arch::{TRAPFRAME_SIZE, STACK_ALIGN};
 
@@ -59,6 +60,7 @@ pub struct TaskStruct {
     mm: OnceCell<Arc<SpinNoIrq<MmStruct>>>,
     pub active_mm_id: AtomicUsize,
     pub fs: Arc<SpinNoIrq<FsStruct>>,
+    pub filetable: Arc<SpinNoIrq<FileTable>>,
 
     pub kstack: Option<TaskStack>,
     /* CPU-specific state of this task: */
@@ -81,6 +83,7 @@ impl TaskStruct {
             mm: OnceCell::new(),
             active_mm_id: AtomicUsize::new(0),
             fs: Arc::new(SpinNoIrq::new(FsStruct::new())),
+            filetable: Arc::new(SpinNoIrq::new(FileTable::new())),
 
             kstack: None,
             thread: UnsafeCell::new(ThreadStruct::new()),

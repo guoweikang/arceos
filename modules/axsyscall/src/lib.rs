@@ -9,6 +9,10 @@ use axhal::arch::TrapFrame;
 use core::arch::asm;
 use memory_addr::{align_up_4k, is_aligned_4k};
 use mmap::{MAP_FIXED, MAP_ANONYMOUS};
+use axfile::fops::File;
+use axfile::fops::OpenOptions;
+use alloc::sync::Arc;
+use spinlock::SpinNoIrq;
 
 #[macro_use]
 extern crate log;
@@ -135,8 +139,19 @@ fn linux_syscall_openat(tf: &TrapFrame) -> usize {
     let flags = tf.regs.a2;
     let mode = tf.regs.a3;
 
-    error!("filename: {}\n", get_user_str(filename));
-    unimplemented!("linux_syscall_openat");
+    let filename = get_user_str(filename);
+    error!("filename: {}\n", filename);
+    //////////////////////////
+    let mut opts = OpenOptions::new();
+    opts.read(true);
+
+    let current = task::current();
+    let fs = current.fs.lock();
+    let file = File::open(&filename, &opts, &fs).unwrap();
+    let fd = current.filetable.lock().insert(Arc::new(SpinNoIrq::new(file)));
+    //////////////////////////
+    error!("linux_syscall_openat fd {}", fd);
+    fd
 }
 
 fn linux_syscall_close(tf: &TrapFrame) -> usize {

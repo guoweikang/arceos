@@ -1,15 +1,10 @@
 [package]
-name = "task"
+name = "filetable"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-log = "0.4"
-axhal = { path = "../axhal" }
-mm = { path = "../mm" }
-fstree = { path = "../fstree" }
-filetable = { path = "../filetable" }
+axfile = { path = "../axfile" }
 spinlock = { path = "../../crates/spinlock" }
-memory_addr = { path = "../../crates/memory_addr" }
