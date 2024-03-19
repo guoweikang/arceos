@@ -1,5 +1,8 @@
 #![cfg_attr(not(test), no_std)]
 
+extern crate alloc;
+use alloc::string::String;
+
 use axhal::trap::SyscallHandler;
 use axhal::arch::TrapFrame;
 //use axhal::mem::virt_to_phys;
@@ -18,6 +21,15 @@ impl SyscallHandler for LinuxSyscallHandler {
         let eid = tf.regs.a7;
         error!("Syscall: {:#x}", eid);
         tf.regs.a0 = match eid {
+            LINUX_SYSCALL_OPENAT => {
+                linux_syscall_openat(tf)
+            },
+            LINUX_SYSCALL_CLOSE => {
+                linux_syscall_close(tf)
+            },
+            LINUX_SYSCALL_READ => {
+                linux_syscall_read(tf)
+            },
             LINUX_SYSCALL_WRITE => {
                 linux_syscall_write(tf)
             },
@@ -81,7 +93,49 @@ struct iovec {
     iov_len: usize,
 }
 
+/// # Safety
+///
+/// The caller must ensure that the pointer is valid and
+/// points to a valid C string.
+/// The string must be null-terminated.
+pub unsafe fn get_str_len(ptr: *const u8) -> usize {
+    let mut cur = ptr as usize;
+    while *(cur as *const u8) != 0 {
+        cur += 1;
+    }
+    cur - ptr as usize
+}
+
+/// # Safety
+///
+/// The caller must ensure that the pointer is valid and
+/// points to a valid C string.
+pub fn raw_ptr_to_ref_str(ptr: *const u8) -> &'static str {
+    let len = unsafe { get_str_len(ptr) };
+    let slice = unsafe { core::slice::from_raw_parts(ptr, len) };
+    if let Ok(s) = core::str::from_utf8(slice) {
+        s
+    } else {
+        panic!("not utf8 slice");
+    }
+}
+
+pub fn get_user_str(ptr: usize) -> String {
+    let ptr = ptr as *const u8;
+    axhal::arch::enable_sum();
+    let ptr = raw_ptr_to_ref_str(ptr);
+    let s = String::from(ptr);
+    axhal::arch::disable_sum();
+    s
+}
+
 fn linux_syscall_openat(tf: &TrapFrame) -> usize {
+    let dtd = tf.regs.a0;
+    let filename = tf.regs.a1;
+    let flags = tf.regs.a2;
+    let mode = tf.regs.a3;
+
+    error!("filename: {}\n", get_user_str(filename));
     unimplemented!("linux_syscall_openat");
 }
 

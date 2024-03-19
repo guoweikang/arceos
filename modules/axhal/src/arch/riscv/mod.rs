@@ -38,6 +38,16 @@ pub const SR_UXL_64:    usize = 0x200000000; /* XLEN = 64 for U-mode */
 
 static mut KERNEL_PAGE_TABLE: OnceCell<PageTable> = OnceCell::new();
 
+#[inline]
+pub fn enable_sum() {
+    unsafe { sstatus::set_sum() }
+}
+
+#[inline]
+pub fn disable_sum() {
+    unsafe { sstatus::clear_sum() }
+}
+
 /// Allows the current CPU to respond to interrupts.
 #[inline]
 pub fn enable_irqs() {
