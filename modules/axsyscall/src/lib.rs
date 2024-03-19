@@ -5,6 +5,7 @@ use axhal::arch::TrapFrame;
 //use axhal::mem::virt_to_phys;
 use core::arch::asm;
 use memory_addr::{align_up_4k, is_aligned_4k};
+use mmap::{MAP_FIXED, MAP_ANONYMOUS};
 
 #[macro_use]
 extern crate log;
@@ -58,6 +59,9 @@ impl SyscallHandler for LinuxSyscallHandler {
 //
 // Linux syscall
 //
+const LINUX_SYSCALL_OPENAT:     usize = 0x38;
+const LINUX_SYSCALL_CLOSE:      usize = 0x39;
+const LINUX_SYSCALL_READ:       usize = 0x3f;
 const LINUX_SYSCALL_WRITE:      usize = 0x40;
 const LINUX_SYSCALL_WRITEV:     usize = 0x42;
 const LINUX_SYSCALL_READLINKAT: usize = 0x4e;
@@ -75,6 +79,18 @@ const LINUX_SYSCALL_MMAP:       usize = 0xde;
 struct iovec {
     iov_base: usize,
     iov_len: usize,
+}
+
+fn linux_syscall_openat(tf: &TrapFrame) -> usize {
+    unimplemented!("linux_syscall_openat");
+}
+
+fn linux_syscall_close(tf: &TrapFrame) -> usize {
+    unimplemented!("linux_syscall_close");
+}
+
+fn linux_syscall_read(tf: &TrapFrame) -> usize {
+    unimplemented!("linux_syscall_read");
 }
 
 fn linux_syscall_write(tf: &TrapFrame) -> usize {
@@ -129,17 +145,10 @@ fn linux_syscall_mmap(tf: &TrapFrame) -> usize {
     let prot = tf.regs.a2;
     let flags = tf.regs.a3;
     let fd = tf.regs.a4;
-    let off = tf.regs.a5;
-    info!("###### mmap!!! {:#x} {:#x} {:#x} {:#x} {:#x} {:#x}", va, len, prot, flags, fd, off);
+    let offset = tf.regs.a5;
+    error!("###### mmap!!! {:#x} {:#x} {:#x} {:#x} {:#x} {:#x}", va, len, prot, flags, fd, offset);
 
-    /*
-    if va == 0 {
-        return va + 0x1000_0000;
-    }
-    */
-
-    unimplemented!();
-    //return va;
+    mmap::mmap(va, len, prot, flags, None, offset).unwrap()
 }
 
 const UTS_LEN: usize = 64;
@@ -228,7 +237,7 @@ fn linux_syscall_brk(tf: &TrapFrame) -> usize {
         assert!(is_aligned_4k(offset));
         //let n = offset >> PAGE_SHIFT;
         //let pa = alloc_pages(n, PAGE_SIZE_4K);
-        mmap::mmap(brk, offset, 0, 0, None, 0).unwrap();
+        mmap::mmap(brk, offset, 0, MAP_FIXED|MAP_ANONYMOUS, None, 0).unwrap();
         let _ = mmap::faultin_page(brk);
         //map_region(brk, pa, n*PAGE_SIZE_4K, 1);
         mm.lock().set_brk(va);

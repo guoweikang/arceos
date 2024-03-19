@@ -11,18 +11,46 @@ use core::ops::Bound;
 use axhal::mem::{phys_to_virt, virt_to_phys};
 pub use mm::FileRef;
 
+/// Interpret addr exactly.
+pub const MAP_FIXED: usize = 0x10;
+/// Don't use a file.
+pub const MAP_ANONYMOUS: usize = 0x20;
+
 pub fn mmap(
-    va: usize, len: usize, _prot: usize, flags: usize,
+    mut va: usize, len: usize, _prot: usize, flags: usize,
     file: Option<FileRef>, offset: usize
-) -> LinuxResult {
+) -> LinuxResult<usize> {
     assert!(is_aligned_4k(len));
     error!("mmap va {:#X} offset {:#X}", va, offset);
+
+    if (flags & MAP_FIXED) == 0 {
+        va = get_unmapped_vma(va, len);
+        error!("Get unmapped vma {:#X}", va);
+    }
 
     let vma = VmAreaStruct::new(va, va + len, offset >> PAGE_SHIFT, file, flags);
     let mm = task::current().mm();
     mm.lock().vmas.insert(va, vma);
 
-    Ok(())
+    Ok(va)
+}
+
+pub fn get_unmapped_vma(va: usize, len: usize) -> usize {
+    let mm = task::current().mm();
+    let locked_mm = mm.lock();
+    let mut gap_start = 0;
+    for (_, vma) in &locked_mm.vmas {
+        error!("{:#X} {:#X}", vma.vm_start, vma.vm_end);
+        if gap_start == 0 {
+            gap_start = vma.vm_end;
+            continue;
+        }
+
+        if vma.vm_start - gap_start >= len {
+            return gap_start;
+        }
+    }
+    unimplemented!("NO available unmapped vma!");
 }
 
 pub fn faultin_page(va: usize) -> usize {

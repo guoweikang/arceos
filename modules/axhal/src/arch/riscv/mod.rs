@@ -9,10 +9,12 @@ use memory_addr::{PhysAddr, VirtAddr};
 use riscv::asm;
 use riscv::register::{satp, sstatus, stvec};
 use crate::paging::PageTable;
+use crate::mem::PAGE_SIZE_4K;
 
 pub use self::context::{GeneralRegisters, TaskContext, TrapFrame, TRAPFRAME_SIZE, STACK_ALIGN};
 
 pub const TASK_SIZE: usize = 0x40_0000_0000;
+pub const STACK_SIZE: usize = 32 * PAGE_SIZE_4K;
 
 /*
  * This is the location that an ET_DYN program is loaded if exec'ed.
@@ -22,6 +24,12 @@ pub const TASK_SIZE: usize = 0x40_0000_0000;
  * that it will "exec", and that there is sufficient room for the brk.
  */
 pub const ELF_ET_DYN_BASE: usize = (TASK_SIZE / 3) * 2;
+
+/*
+ * This decides where the kernel will search for a free chunk of vm
+ * space during mmap's.
+ */
+pub const TASK_UNMAPPED_BASE: usize = (TASK_SIZE / 3) & !(PAGE_SIZE_4K - 1);
 
 /// Status register flags
 pub const SR_SPIE:      usize = 0x00000020;  /* Previous Supervisor IE */
