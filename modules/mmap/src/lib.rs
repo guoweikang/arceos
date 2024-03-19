@@ -7,6 +7,7 @@ extern crate alloc;
 use axerrno::LinuxResult;
 use mm::VmAreaStruct;
 use memory_addr::{is_aligned_4k, align_down_4k, PAGE_SIZE_4K, PAGE_SHIFT};
+use memory_addr::align_up_4k;
 use core::ops::Bound;
 use axhal::mem::{phys_to_virt, virt_to_phys};
 pub use mm::FileRef;
@@ -20,7 +21,8 @@ pub fn mmap(
     mut va: usize, len: usize, _prot: usize, flags: usize,
     file: Option<FileRef>, offset: usize
 ) -> LinuxResult<usize> {
-    assert!(is_aligned_4k(len));
+    //assert!(is_aligned_4k(len));
+    //len = align_up_4k(len);
     error!("mmap va {:#X} offset {:#X}", va, offset);
 
     if (flags & MAP_FIXED) == 0 {

@@ -10,3 +10,5 @@ init: init.c
 init_static: init.c
 	$(CC) -static $< -o $@
 	$(STRIP) $@
+
+#riscv64-linux-gnu-gcc -static ./main1.c -o hello1 -L/home/cloud/study/glibc-2.36-riscv/build/

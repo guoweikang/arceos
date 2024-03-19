@@ -148,6 +148,14 @@ fn linux_syscall_openat(tf: &TrapFrame) -> usize {
     let current = task::current();
     let fs = current.fs.lock();
     let file = File::open(&filename, &opts, &fs).unwrap();
+    /*
+    {
+        let mut buf: [u8; 4] = [0; 4];
+        file.read(&mut buf);
+        panic!("read: {:#x},{:#x},{:#x},{:#x}",
+               buf[0], buf[1], buf[2], buf[3]);
+    }
+    */
     let fd = current.filetable.lock().insert(Arc::new(SpinNoIrq::new(file)));
     //////////////////////////
     error!("linux_syscall_openat fd {}", fd);
@@ -155,16 +163,40 @@ fn linux_syscall_openat(tf: &TrapFrame) -> usize {
 }
 
 fn linux_syscall_close(tf: &TrapFrame) -> usize {
-    unimplemented!("linux_syscall_close");
+    error!("linux_syscall_close");
+    0
 }
 
 fn linux_syscall_read(tf: &TrapFrame) -> usize {
-    unimplemented!("linux_syscall_read");
+    let fd = tf.regs.a0;
+    let buf = tf.regs.a1;
+    let count = tf.regs.a2;
+
+    let user_buf = unsafe {
+        core::slice::from_raw_parts_mut(buf as *mut u8, count)
+    };
+
+    let current = task::current();
+    let filetable = current.filetable.lock();
+    let file = filetable.get_file(fd).unwrap();
+    let mut pos = 0;
+    assert!(count < 1024);
+    let mut buf: [u8; 1024] = [0; 1024];
+    while pos < count {
+        let ret = file.lock().read(&mut buf[pos..]).unwrap();
+        if ret == 0 {
+            break;
+        }
+        pos += ret;
+    }
+    axhal::arch::enable_sum();
+    user_buf.copy_from_slice(&buf[..count]);
+    axhal::arch::disable_sum();
+    //error!("linux_syscall_read: fd {}, buf {:#X}, count {}, ret {}", fd, buf, count, pos);
+    pos
 }
 
 fn linux_syscall_write(tf: &TrapFrame) -> usize {
-    extern crate alloc;
-    //use alloc::string::String;
     use core::slice;
     debug!("write: {:#x}, {:#x}, {:#x}",
         tf.regs.a0, tf.regs.a1, tf.regs.a2);
@@ -177,16 +209,14 @@ fn linux_syscall_write(tf: &TrapFrame) -> usize {
     debug!("{}", s.unwrap());
     */
 
-    enable_user_access();
+    axhal::arch::enable_sum();
     axhal::console::write_bytes(bytes);
-    disable_user_access();
+    axhal::arch::disable_sum();
 
     return size;
 }
 
 fn linux_syscall_writev(tf: &TrapFrame) -> usize {
-    extern crate alloc;
-    use alloc::string::String;
     use core::slice;
 
     debug!("writev: {:#x}, {:#x}, {:#x}",
@@ -194,7 +224,7 @@ fn linux_syscall_writev(tf: &TrapFrame) -> usize {
 
     let array = tf.regs.a1 as *const iovec;
     let size = tf.regs.a2;
-    enable_user_access();
+    axhal::arch::enable_sum();
     let iov_array = unsafe { slice::from_raw_parts(array, size) };
     for iov in iov_array {
         debug!("iov: {:#X} {:#X}", iov.iov_base, iov.iov_len);
@@ -202,7 +232,7 @@ fn linux_syscall_writev(tf: &TrapFrame) -> usize {
         let s = String::from_utf8(bytes.into());
         error!("{}", s.unwrap());
     }
-    disable_user_access();
+    axhal::arch::disable_sum();
 
     return size;
 }
@@ -248,6 +278,7 @@ fn linux_syscall_uname(tf: &TrapFrame) -> usize {
     return 0;
 }
 
+/*
 fn enable_user_access() {
     /* Enable access to user memory */
     unsafe { asm!("
@@ -263,14 +294,15 @@ fn disable_user_access() {
         csrc sstatus, t6"
     )}
 }
+*/
 
 fn init_bytes_from_str(dst: &mut [u8], src: &str) {
     let src = src.as_bytes();
     let (left, right) = dst.split_at_mut(src.len());
-    enable_user_access();
+    axhal::arch::enable_sum();
     left.copy_from_slice(src);
     right.fill(0);
-    disable_user_access();
+    axhal::arch::disable_sum();
 }
 
 /*
