@@ -8,6 +8,7 @@ use core::cell::OnceCell;
 use memory_addr::{PhysAddr, VirtAddr};
 use riscv::asm;
 use riscv::register::{satp, sstatus, stvec};
+#[cfg(feature = "paging")]
 use crate::paging::PageTable;
 use crate::mem::PAGE_SIZE_4K;
 
@@ -36,6 +37,7 @@ pub const SR_SPIE:      usize = 0x00000020;  /* Previous Supervisor IE */
 pub const SR_FS_INITIAL:usize = 0x00002000;
 pub const SR_UXL_64:    usize = 0x200000000; /* XLEN = 64 for U-mode */
 
+#[cfg(feature = "paging")]
 static mut KERNEL_PAGE_TABLE: OnceCell<PageTable> = OnceCell::new();
 
 #[inline]
@@ -146,6 +148,7 @@ pub unsafe fn write_thread_pointer(tp: usize) {
     core::arch::asm!("mv tp, {}", in(reg) tp)
 }
 
+#[cfg(feature = "paging")]
 pub fn setup_page_table_root(pt: PageTable) {
     unsafe {
         let _ = KERNEL_PAGE_TABLE.set(pt);
@@ -153,6 +156,7 @@ pub fn setup_page_table_root(pt: PageTable) {
     }
 }
 
+#[cfg(feature = "paging")]
 pub fn reuse_page_table_root() {
     unsafe {
         assert!(KERNEL_PAGE_TABLE.get().is_some());
@@ -160,6 +164,7 @@ pub fn reuse_page_table_root() {
     }
 }
 
+#[cfg(feature = "paging")]
 pub fn dup_kernel_pg_dir() -> PageTable {
     unsafe { KERNEL_PAGE_TABLE.get().unwrap().clone() }
 }

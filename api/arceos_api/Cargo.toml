@@ -12,8 +12,8 @@ documentation = "https://rcore-os.github.io/arceos/arceos_api/index.html"
 [features]
 default = []
 
-unikernel = ["dep:axruntime"]
-monolithic = ["mkboot"]
+unikernel = ["axruntime"]
+monolithic = ["mkboot", "axhal/monolithic"]
 
 irq = ["axfeat/irq"]
 alloc = ["dep:axalloc", "axfeat/alloc"]

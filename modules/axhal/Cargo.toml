@@ -16,6 +16,7 @@ fp_simd = []
 paging = ["axalloc", "page_table"]
 irq = []
 tls = ["alloc"]
+monolithic = []
 default = []
 
 [dependencies]

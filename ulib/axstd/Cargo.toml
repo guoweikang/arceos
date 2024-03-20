@@ -19,6 +19,7 @@ documentation = "https://rcore-os.github.io/arceos/axstd/index.html"
 [features]
 default = []
 
+unikernel = ["arceos_api/unikernel", "axfeat/unikernel"]
 monolithic = ["arceos_api/monolithic", "axfeat/monolithic"]
 
 # Multicore

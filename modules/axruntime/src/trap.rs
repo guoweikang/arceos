@@ -11,6 +11,6 @@ impl axhal::trap::TrapHandler for TrapHandlerImpl {
         }
     }
     fn handle_page_fault(badaddr: usize, _cause: usize) {
-        mmap::faultin_page(badaddr);
+        unimplemented!("NOT support page fault!");
     }
 }

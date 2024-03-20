@@ -20,6 +20,7 @@ fn riscv_trap_handler(tf: &mut TrapFrame, _from_user: bool) {
     let scause = scause::read();
     match scause.cause() {
         Trap::Exception(E::Breakpoint) => handle_breakpoint(&mut tf.sepc),
+        #[cfg(feature = "monolithic")]
         Trap::Exception(E::UserEnvCall) => crate::trap::handle_linux_syscall(tf),
         Trap::Exception(E::InstructionPageFault) => {
             crate::trap::handle_page_fault(stval::read(), 0);

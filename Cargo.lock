@@ -488,12 +488,10 @@ dependencies = [
  "axhal",
  "axlog",
  "axnet",
- "axsyscall",
  "axtask",
  "crate_interface",
  "kernel_guard",
  "lazy_init",
- "mmap",
  "percpu",
 ]
 
