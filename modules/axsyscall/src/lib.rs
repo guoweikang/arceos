@@ -13,6 +13,7 @@ use axfile::fops::File;
 use axfile::fops::OpenOptions;
 use alloc::sync::Arc;
 use spinlock::SpinNoIrq;
+use axerrno::LinuxError;
 
 #[macro_use]
 extern crate log;
@@ -147,15 +148,12 @@ fn linux_syscall_openat(tf: &TrapFrame) -> usize {
 
     let current = task::current();
     let fs = current.fs.lock();
-    let file = File::open(&filename, &opts, &fs).unwrap();
-    /*
-    {
-        let mut buf: [u8; 4] = [0; 4];
-        file.read(&mut buf);
-        panic!("read: {:#x},{:#x},{:#x},{:#x}",
-               buf[0], buf[1], buf[2], buf[3]);
-    }
-    */
+    let file = match File::open(&filename, &opts, &fs) {
+        Ok(f) => f,
+        Err(e) => {
+            return (-LinuxError::from(e).code()) as usize;
+        },
+    };
     let fd = current.filetable.lock().insert(Arc::new(SpinNoIrq::new(file)));
     //////////////////////////
     error!("linux_syscall_openat fd {}", fd);
@@ -245,9 +243,17 @@ fn linux_syscall_mmap(tf: &TrapFrame) -> usize {
     let flags = tf.regs.a3;
     let fd = tf.regs.a4;
     let offset = tf.regs.a5;
+    assert!(is_aligned_4k(va));
     error!("###### mmap!!! {:#x} {:#x} {:#x} {:#x} {:#x} {:#x}", va, len, prot, flags, fd, offset);
 
-    mmap::mmap(va, len, prot, flags, None, offset).unwrap()
+    let current = task::current();
+    let filetable = current.filetable.lock();
+    let file = if (flags & MAP_ANONYMOUS) != 0 {
+        None
+    } else {
+        filetable.get_file(fd)
+    };
+    mmap::mmap(va, len, prot, flags, file, offset).unwrap()
 }
 
 const UTS_LEN: usize = 64;
@@ -328,7 +334,7 @@ fn linux_syscall_brk(tf: &TrapFrame) -> usize {
 
     let va = align_up_4k(tf.regs.a0);
     assert!(is_aligned_4k(brk));
-    info!("brk!!! {:#x}, {:#x}", va, brk);
+    error!("brk!!! {:#x}, {:#x}", va, brk);
 
     if va == 0 {
         brk

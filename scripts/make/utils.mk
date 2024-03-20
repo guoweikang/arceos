@@ -28,6 +28,7 @@ define build_linux_image
   @sudo mkdir -p ./mnt/lib
   @sudo mkdir -p ./mnt/sbin
   @sudo cp ./payload/ld-linux-riscv64-lp64d.so.1 ./mnt/lib/
+  @sudo cp ./payload/libc.so.6 ./mnt/lib/
   @sudo cp ./payload/init ./mnt/sbin/init
   ls -l ./mnt/lib
   @sudo umount ./mnt

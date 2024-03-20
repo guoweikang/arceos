@@ -521,6 +521,7 @@ name = "axsyscall"
 version = "0.1.0"
 dependencies = [
  "axalloc",
+ "axerrno",
  "axfile",
  "axhal",
  "crate_interface",

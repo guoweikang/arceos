@@ -19,13 +19,13 @@ impl FileTable {
 
     pub fn get_file(&self, fd: usize) -> Option<Arc<Mutex<File>>> {
         self.table
-            .get(fd)
+            .get(fd-3)
             .map(|entry| entry.file.clone())
     }
 
     pub fn insert(&mut self, item: Arc<Mutex<File>>) -> usize {
         let entry = FileTableEntry::new(item);
-        self.table.put(entry)
+        self.table.put(entry) + 3
     }
 }
 

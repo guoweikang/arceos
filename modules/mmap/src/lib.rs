@@ -18,11 +18,11 @@ pub const MAP_FIXED: usize = 0x10;
 pub const MAP_ANONYMOUS: usize = 0x20;
 
 pub fn mmap(
-    mut va: usize, len: usize, _prot: usize, flags: usize,
+    mut va: usize, mut len: usize, _prot: usize, flags: usize,
     file: Option<FileRef>, offset: usize
 ) -> LinuxResult<usize> {
     //assert!(is_aligned_4k(len));
-    //len = align_up_4k(len);
+    len = align_up_4k(len);
     error!("mmap va {:#X} offset {:#X}", va, offset);
 
     if (flags & MAP_FIXED) == 0 {
@@ -73,12 +73,13 @@ pub fn faultin_page(va: usize) -> usize {
     //let flags = vma.vm_flags;
     let offset = (vma.vm_pgoff << PAGE_SHIFT) + delta;
 
-    let pa = axalloc::global_allocator()
+    let pa: usize = axalloc::global_allocator()
         .alloc_pages(1, PAGE_SIZE_4K)
         .map(|va| virt_to_phys(va.into()))
         .ok()
         .unwrap()
         .into();
+
     if vma.vm_file.get().is_some() {
         let f = vma.vm_file.get().unwrap().clone();
         locked_mm.fill_cache(pa, PAGE_SIZE_4K, &mut f.lock(), offset);

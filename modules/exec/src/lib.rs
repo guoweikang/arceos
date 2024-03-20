@@ -3,8 +3,8 @@
 #[macro_use]
 extern crate log;
 extern crate alloc;
-use alloc::vec::Vec;
 use alloc::sync::Arc;
+use alloc::{collections::BTreeMap, string::String, vec, vec::Vec};
 use core::str::from_utf8;
 use core::{mem::align_of, mem::size_of_val, ptr::null};
 
@@ -26,6 +26,7 @@ use axhal::arch::{SR_SPIE, SR_FS_INITIAL, SR_UXL_64};
 use axhal::arch::{TASK_SIZE, ELF_ET_DYN_BASE};
 use mmap::{MAP_FIXED, MAP_ANONYMOUS};
 use axhal::arch::STACK_SIZE;
+use axhal::arch::{enable_sum, disable_sum};
 
 const ELF_HEAD_BUF_SIZE: usize = 256;
 
@@ -38,8 +39,7 @@ pub fn kernel_execve(filename: &str) -> LinuxResult {
     // TODO: Move it into kernel_init().
     setup_zero_page()?;
 
-    let sp = get_arg_page()?;
-    bprm_execve(filename, 0, sp, 0)
+    bprm_execve(filename, 0, 0)
 }
 
 fn setup_zero_page() -> LinuxResult {
@@ -91,11 +91,43 @@ impl UserStack {
 
 //////////////////////////////////////////////
 
-fn get_arg_page() -> LinuxResult<usize> {
+const AT_PHDR: u8 = 3;
+const AT_PHENT: u8 = 4;
+const AT_PHNUM: u8 = 5;
+const AT_PAGESZ: u8 = 6;
+const AT_ENTRY: u8 = 9;
+const AT_RANDOM: u8 = 25;
+
+pub fn get_auxv_vector(
+    entry: usize
+) -> BTreeMap<u8, usize> {
+    let mut map = BTreeMap::new();
+    /*
+    map.insert(
+        AT_PHDR,
+        40,
+    );
+    map.insert(AT_PHENT, 38);
+    map.insert(AT_PHNUM, 2);
+    map.insert(AT_ENTRY, entry);
+    map.insert(AT_RANDOM, 0);
+    map.insert(AT_PAGESZ, PAGE_SIZE_4K);
+    */
+    map
+}
+
+fn get_arg_page(entry: usize) -> LinuxResult<usize> {
+    let auxv = get_auxv_vector(entry);
+
     let va = TASK_SIZE - STACK_SIZE;
     mmap::mmap(va, STACK_SIZE, 0, MAP_FIXED|MAP_ANONYMOUS, None, 0)?;
     let direct_va = mmap::faultin_page(TASK_SIZE - PAGE_SIZE_4K);
     let mut stack = UserStack::new(TASK_SIZE, direct_va+PAGE_SIZE_4K);
+
+    let random_str: &[usize; 2] = &[3703830112808742751usize, 7081108068768079778usize];
+    stack.push(random_str.as_slice());
+    let random_str_pos = stack.get_sp();
+
     let arg1 = "/sbin/init";
     let arg0 = "/lib/ld-linux-riscv64-lp64d.so.1";
     let args = [arg0, arg1];
@@ -103,6 +135,16 @@ fn get_arg_page() -> LinuxResult<usize> {
         .iter()
         .map(|arg| stack.push_str(arg))
         .collect();
+
+    stack.push(&[null::<u8>(), null::<u8>()]);
+    for (key, value) in auxv.iter() {
+        if (*key) == 25 {
+            // AT RANDOM
+            stack.push(&[*key as usize, random_str_pos]);
+        } else {
+            stack.push(&[*key as usize, *value]);
+        }
+    }
 
     stack.push(&[null::<u8>()]);
     stack.push(&[null::<u8>()]);
@@ -129,10 +171,10 @@ fn get_arg_page() -> LinuxResult<usize> {
 
 /// sys_execve() executes a new program.
 fn bprm_execve(
-    filename: &str, flags: usize, sp: usize, load_bias: usize
+    filename: &str, flags: usize, load_bias: usize
 ) -> LinuxResult {
     let file = do_open_execat(filename, flags)?;
-    exec_binprm(file, sp, load_bias)
+    exec_binprm(file, load_bias)
 }
 
 fn do_open_execat(filename: &str, _flags: usize) -> LinuxResult<FileRef> {
@@ -145,11 +187,52 @@ fn do_open_execat(filename: &str, _flags: usize) -> LinuxResult<FileRef> {
     Ok(Arc::new(SpinNoIrq::new(file)))
 }
 
-fn exec_binprm(file: FileRef, sp: usize, load_bias: usize) -> LinuxResult {
-    load_elf_binary(file, sp, load_bias)
+fn exec_binprm(file: FileRef, load_bias: usize) -> LinuxResult {
+    load_elf_binary(file, load_bias)
 }
 
-fn load_elf_binary(file: FileRef, sp: usize, load_bias: usize) -> LinuxResult {
+fn load_elf_interp(file: FileRef, load_bias: usize, app_entry: usize) -> LinuxResult {
+    let (phdrs, entry) = load_elf_phdrs(file.clone())?;
+
+    let mut elf_bss: usize = 0;
+    let mut elf_brk: usize = 0;
+
+    error!("There are {} PT_LOAD segments", phdrs.len());
+    for phdr in &phdrs {
+        error!("phdr: offset: {:#X}=>{:#X} size: {:#X}=>{:#X}",
+            phdr.p_offset, phdr.p_vaddr, phdr.p_filesz, phdr.p_memsz);
+
+        let va = align_down_4k(phdr.p_vaddr as usize);
+        let va_end = align_up_4k((phdr.p_vaddr + phdr.p_filesz) as usize);
+        mmap::mmap(va + load_bias, va_end - va, 0, MAP_FIXED, Some(file.clone()), phdr.p_offset as usize)?;
+
+        let pos = (phdr.p_vaddr + phdr.p_filesz) as usize;
+        if elf_bss < pos {
+            elf_bss = pos;
+        }
+        let pos = (phdr.p_vaddr + phdr.p_memsz) as usize;
+        if elf_brk < pos {
+            elf_brk = pos;
+        }
+    }
+
+    let entry = entry + load_bias;
+    elf_bss += load_bias;
+    elf_brk += load_bias;
+
+    let sp = get_arg_page(app_entry)?;
+
+    error!("set brk...");
+    set_brk(elf_bss, elf_brk);
+
+    padzero(elf_bss);
+
+    error!("start thread...");
+    start_thread(entry, sp);
+    Ok(())
+}
+
+fn load_elf_binary(file: FileRef, load_bias: usize) -> LinuxResult {
     let (phdrs, entry) = load_elf_phdrs(file.clone())?;
 
     for phdr in &phdrs {
@@ -165,7 +248,8 @@ fn load_elf_binary(file: FileRef, sp: usize, load_bias: usize) -> LinuxResult {
             error!("PT_INTERP ret {} {:?}!", ret, path);
             // Todo: check elf_ex->e_type == ET_DYN
             let load_bias = align_down_4k(ELF_ET_DYN_BASE);
-            return bprm_execve(path, 0, sp, load_bias);
+            let file = do_open_execat(path, 0)?;
+            return load_elf_interp(file, load_bias, entry);
         }
     }
 
@@ -195,12 +279,32 @@ fn load_elf_binary(file: FileRef, sp: usize, load_bias: usize) -> LinuxResult {
     elf_bss += load_bias;
     elf_brk += load_bias;
 
+    let sp = get_arg_page(entry)?;
+
     error!("set brk...");
     set_brk(elf_bss, elf_brk);
+
+    padzero(elf_bss);
 
     error!("start thread...");
     start_thread(entry, sp);
     Ok(())
+}
+
+fn padzero(elf_bss: usize) {
+    let nbyte = elf_bss & (PAGE_SIZE_4K - 1);
+    error!("padzero nbyte: {:#X} ...", elf_bss);
+    if nbyte != 0 {
+        let nbyte = PAGE_SIZE_4K - nbyte;
+        enable_sum();
+        unsafe {
+            core::slice::from_raw_parts_mut(
+                elf_bss as *mut u8, nbyte
+            )
+        }.fill(0);
+        disable_sum();
+        error!("padzero nbyte: {:#X} {:#X}", elf_bss, nbyte);
+    }
 }
 
 fn set_brk(elf_bss: usize, elf_brk: usize) {
