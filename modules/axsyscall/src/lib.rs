@@ -18,6 +18,9 @@ use axerrno::LinuxError;
 #[macro_use]
 extern crate log;
 
+pub const AT_FDCWD: isize = -100;
+pub const AT_EMPTY_PATH: isize = 0x1000;
+
 struct LinuxSyscallHandler;
 
 #[crate_interface::impl_interface]
@@ -45,7 +48,7 @@ impl SyscallHandler for LinuxSyscallHandler {
                 usize::MAX
             },
             LINUX_SYSCALL_FSTATAT => {
-                0
+                linux_syscall_fstatat(tf)
             },
             LINUX_SYSCALL_UNAME => {
                 linux_syscall_uname(tf)
@@ -233,6 +236,76 @@ fn linux_syscall_writev(tf: &TrapFrame) -> usize {
     axhal::arch::disable_sum();
 
     return size;
+}
+
+#[derive(Debug, Clone, Copy, Default)]
+#[repr(C)]
+pub struct KernelStat {
+    pub st_dev: u64,
+    pub st_ino: u64,
+    pub st_mode: u32,
+    pub st_nlink: u32,
+    pub st_uid: u32,
+    pub st_gid: u32,
+    pub st_rdev: u64,
+    pub _pad0: u64,
+    pub st_size: u64,
+    pub st_blksize: u32,
+    pub _pad1: u32,
+    pub st_blocks: u64,
+    pub st_atime_sec: isize,
+    pub st_atime_nsec: isize,
+    pub st_mtime_sec: isize,
+    pub st_mtime_nsec: isize,
+    pub st_ctime_sec: isize,
+    pub st_ctime_nsec: isize,
+}
+
+fn linux_syscall_fstatat(tf: &TrapFrame) -> usize {
+    let dirfd = tf.regs.a0;
+    let pathname = tf.regs.a1;
+    let statbuf = tf.regs.a2;
+    let flags = tf.regs.a3;
+
+    if (flags as isize & AT_EMPTY_PATH) == 0 {
+        let pathname = get_user_str(pathname);
+        warn!("!!! implement NONE AT_EMPTY_PATH for pathname: {}\n", pathname);
+        return 0;
+    }
+
+    error!("###### fstatat!!! {:#x} {:#x} {:#x}", dirfd, statbuf, flags);
+    let current = task::current();
+    let filetable = current.filetable.lock();
+    let file = match filetable.get_file(dirfd) {
+        Some(f) => f,
+        None => {
+            return (-2isize) as usize;
+        },
+    };
+    let metadata = file.lock().get_attr().unwrap();
+    let ty = metadata.file_type() as u8;
+    let perm = metadata.perm().bits() as u32;
+    let st_mode = ((ty as u32) << 12) | perm;
+    let st_size = metadata.size();
+    error!("st_size: {}", st_size);
+
+    let statbuf = statbuf as *mut KernelStat;
+    axhal::arch::enable_sum();
+    unsafe {
+        *statbuf = KernelStat {
+            st_ino: 1,
+            st_nlink: 1,
+            st_mode,
+            st_uid: 1000,
+            st_gid: 1000,
+            st_size: st_size,
+            st_blocks: metadata.blocks() as _,
+            st_blksize: 512,
+            ..Default::default()
+        };
+    }
+    axhal::arch::disable_sum();
+    0
 }
 
 // void *mmap(void *addr, size_t len, int prot, int flags, int fd, off_t off);

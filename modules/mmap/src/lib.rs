@@ -21,7 +21,7 @@ pub fn mmap(
     mut va: usize, mut len: usize, _prot: usize, flags: usize,
     file: Option<FileRef>, offset: usize
 ) -> LinuxResult<usize> {
-    //assert!(is_aligned_4k(len));
+    assert!(is_aligned_4k(va));
     len = align_up_4k(len);
     error!("mmap va {:#X} offset {:#X}", va, offset);
 
@@ -30,6 +30,7 @@ pub fn mmap(
         error!("Get unmapped vma {:#X}", va);
     }
 
+    error!("mmap region: {:#X} - {:#X}", va, va + len);
     let vma = VmAreaStruct::new(va, va + len, offset >> PAGE_SHIFT, file, flags);
     let mm = task::current().mm();
     mm.lock().vmas.insert(va, vma);
@@ -73,12 +74,16 @@ pub fn faultin_page(va: usize) -> usize {
     //let flags = vma.vm_flags;
     let offset = (vma.vm_pgoff << PAGE_SHIFT) + delta;
 
-    let pa: usize = axalloc::global_allocator()
-        .alloc_pages(1, PAGE_SIZE_4K)
-        .map(|va| virt_to_phys(va.into()))
-        .ok()
-        .unwrap()
-        .into();
+    let direct_va: usize = axalloc::global_allocator()
+        .alloc_pages(1, PAGE_SIZE_4K).unwrap();
+
+    // Todo: check whether we need to zero it.
+    let buf = unsafe {
+        core::slice::from_raw_parts_mut(direct_va as *mut u8, PAGE_SIZE_4K)
+    };
+    buf.fill(0);
+
+    let pa = virt_to_phys(direct_va.into()).into();
 
     if vma.vm_file.get().is_some() {
         let f = vma.vm_file.get().unwrap().clone();
