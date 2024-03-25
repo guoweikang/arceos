@@ -21,8 +21,7 @@ use elf::parse::ParseAt;
 use axio::SeekFrom;
 use spinlock::SpinNoIrq;
 use mmap::FileRef;
-use axhal::arch::TrapFrame;
-use axhal::arch::{SR_SPIE, SR_FS_INITIAL, SR_UXL_64};
+use axhal::arch::{TrapFrame, start_thread};
 use axhal::arch::{TASK_SIZE, ELF_ET_DYN_BASE};
 use mmap::{MAP_FIXED, MAP_ANONYMOUS};
 use axhal::arch::STACK_SIZE;
@@ -228,7 +227,7 @@ fn load_elf_interp(file: FileRef, load_bias: usize, app_entry: usize) -> LinuxRe
     padzero(elf_bss);
 
     error!("start thread...");
-    start_thread(entry, sp);
+    start_thread(task::current().pt_regs(), entry, sp);
     Ok(())
 }
 
@@ -287,7 +286,7 @@ fn load_elf_binary(file: FileRef, load_bias: usize) -> LinuxResult {
     padzero(elf_bss);
 
     error!("start thread...");
-    start_thread(entry, sp);
+    start_thread(task::current().pt_regs(), entry, sp);
     Ok(())
 }
 
@@ -344,15 +343,4 @@ fn load_elf_phdrs(file: FileRef) -> LinuxResult<(Vec<ProgramHeader>, usize)> {
         .filter(|phdr|{phdr.p_type == PT_LOAD || phdr.p_type == PT_INTERP})
         .collect();
     Ok((phdrs, ehdr.e_entry as usize))
-}
-
-fn start_thread(pc: usize, sp: usize) {
-    let tf = unsafe {
-        core::slice::from_raw_parts_mut(
-            task::current().pt_regs() as *mut TrapFrame, 1
-        )
-    };
-    tf[0].sepc = pc;
-    tf[0].sstatus = SR_SPIE | SR_FS_INITIAL | SR_UXL_64;
-    tf[0].regs.sp = sp;
 }

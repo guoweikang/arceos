@@ -12,7 +12,7 @@ use riscv::register::{satp, sstatus, stvec};
 use crate::paging::PageTable;
 use crate::mem::PAGE_SIZE_4K;
 
-pub use self::context::{GeneralRegisters, TaskContext, TrapFrame, TRAPFRAME_SIZE, STACK_ALIGN};
+pub use self::context::{GeneralRegisters, TaskContext, TrapFrame, TRAPFRAME_SIZE, STACK_ALIGN, start_thread};
 
 pub const TASK_SIZE: usize = 0x40_0000_0000;
 pub const STACK_SIZE: usize = 32 * PAGE_SIZE_4K;

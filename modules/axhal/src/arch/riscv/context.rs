@@ -1,5 +1,6 @@
 use core::arch::asm;
 use memory_addr::VirtAddr;
+use crate::arch::{SR_SPIE, SR_FS_INITIAL, SR_UXL_64};
 
 pub const TRAPFRAME_SIZE: usize = core::mem::size_of::<TrapFrame>();
 pub const STACK_ALIGN: usize = 16;
@@ -162,4 +163,15 @@ unsafe extern "C" fn context_switch(_current_task: &mut TaskContext, _next_task:
         ret",
         options(noreturn),
     )
+}
+
+pub fn start_thread(regs: usize, pc: usize, sp: usize) {
+    let mut regs = unsafe {
+        core::slice::from_raw_parts_mut(
+            regs as *mut TrapFrame, 1
+        )
+    };
+    regs[0].sepc = pc;
+    regs[0].sstatus = SR_SPIE | SR_FS_INITIAL | SR_UXL_64;
+    regs[0].regs.sp = sp;
 }
