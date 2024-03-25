@@ -10,6 +10,7 @@ use memory_addr::{is_aligned_4k, align_down_4k, PAGE_SIZE_4K, PAGE_SHIFT};
 use memory_addr::align_up_4k;
 use core::ops::Bound;
 use axhal::mem::{phys_to_virt, virt_to_phys};
+use axhal::arch::TASK_UNMAPPED_BASE;
 pub use mm::FileRef;
 
 /// Interpret addr exactly.
@@ -41,17 +42,17 @@ pub fn mmap(
 pub fn get_unmapped_vma(va: usize, len: usize) -> usize {
     let mm = task::current().mm();
     let locked_mm = mm.lock();
-    let mut gap_start = 0;
-    for (_, vma) in &locked_mm.vmas {
-        error!("{:#X} {:#X}", vma.vm_start, vma.vm_end);
-        if gap_start == 0 {
-            gap_start = vma.vm_end;
+    let mut gap_end = TASK_UNMAPPED_BASE;
+    for (_, vma) in locked_mm.vmas.iter().rev() {
+        error!("get_unmapped_vma: {:#X} {:#X} {:#X}",
+            vma.vm_start, vma.vm_end, gap_end);
+        if vma.vm_end > gap_end {
             continue;
         }
-
-        if vma.vm_start - gap_start >= len {
-            return gap_start;
+        if gap_end - vma.vm_end >= len {
+            return gap_end - len;
         }
+        gap_end = vma.vm_start;
     }
     unimplemented!("NO available unmapped vma!");
 }
