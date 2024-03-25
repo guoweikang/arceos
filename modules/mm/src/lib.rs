@@ -9,7 +9,7 @@ use alloc::collections::BTreeMap;
 use alloc::sync::Arc;
 use core::cell::OnceCell;
 use axfile::fops::File;
-use axhal::arch::dup_kernel_pg_dir;
+use axhal::paging::dup_kernel_pg_dir;
 use axhal::mem::phys_to_virt;
 use axhal::paging::MappingFlags;
 use axhal::paging::PageTable;

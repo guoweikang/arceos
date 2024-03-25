@@ -4,7 +4,6 @@ mod macros;
 mod context;
 mod trap;
 
-use core::cell::OnceCell;
 use memory_addr::{PhysAddr, VirtAddr};
 use riscv::asm;
 use riscv::register::{satp, sstatus, stvec};
@@ -12,7 +11,7 @@ use riscv::register::{satp, sstatus, stvec};
 use crate::paging::PageTable;
 use crate::mem::PAGE_SIZE_4K;
 
-pub use self::context::{GeneralRegisters, TaskContext, TrapFrame, TRAPFRAME_SIZE, STACK_ALIGN, start_thread};
+pub use self::context::{GeneralRegisters, TaskContext, TrapFrame, start_thread};
 
 pub const TASK_SIZE: usize = 0x40_0000_0000;
 pub const STACK_SIZE: usize = 32 * PAGE_SIZE_4K;
@@ -36,9 +35,6 @@ pub const TASK_UNMAPPED_BASE: usize = (TASK_SIZE / 3) & !(PAGE_SIZE_4K - 1);
 pub const SR_SPIE:      usize = 0x00000020;  /* Previous Supervisor IE */
 pub const SR_FS_INITIAL:usize = 0x00002000;
 pub const SR_UXL_64:    usize = 0x200000000; /* XLEN = 64 for U-mode */
-
-#[cfg(feature = "paging")]
-static mut KERNEL_PAGE_TABLE: OnceCell<PageTable> = OnceCell::new();
 
 #[inline]
 pub fn enable_sum() {
@@ -146,25 +142,4 @@ pub fn read_thread_pointer() -> usize {
 #[inline]
 pub unsafe fn write_thread_pointer(tp: usize) {
     core::arch::asm!("mv tp, {}", in(reg) tp)
-}
-
-#[cfg(feature = "paging")]
-pub fn setup_page_table_root(pt: PageTable) {
-    unsafe {
-        let _ = KERNEL_PAGE_TABLE.set(pt);
-        write_page_table_root(KERNEL_PAGE_TABLE.get().unwrap().root_paddr());
-    }
-}
-
-#[cfg(feature = "paging")]
-pub fn reuse_page_table_root() {
-    unsafe {
-        assert!(KERNEL_PAGE_TABLE.get().is_some());
-        write_page_table_root(KERNEL_PAGE_TABLE.get().unwrap().root_paddr());
-    }
-}
-
-#[cfg(feature = "paging")]
-pub fn dup_kernel_pg_dir() -> PageTable {
-    unsafe { KERNEL_PAGE_TABLE.get().unwrap().clone() }
 }

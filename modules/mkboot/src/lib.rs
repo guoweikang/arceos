@@ -165,7 +165,7 @@ fn init_allocator() {
 fn remap_kernel_memory() -> Result<(), axhal::paging::PagingError> {
     use axhal::mem::{memory_regions, phys_to_virt};
     use axhal::paging::PageTable;
-    use axhal::arch::{setup_page_table_root, reuse_page_table_root};
+    use axhal::paging::{setup_page_table_root, reuse_page_table_root};
 
     if axhal::cpu::this_cpu_is_bsp() {
         let mut kernel_page_table = PageTable::try_new()?;

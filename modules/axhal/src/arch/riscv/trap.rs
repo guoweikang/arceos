@@ -1,7 +1,8 @@
 use riscv::register::scause::{self, Exception as E, Trap};
 use riscv::register::stval;
 
-use super::{TrapFrame, TRAPFRAME_SIZE};
+use crate::trap::TRAPFRAME_SIZE;
+use super::TrapFrame;
 
 include_asm_marcos!();
 

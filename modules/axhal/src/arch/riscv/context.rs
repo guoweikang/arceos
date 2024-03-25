@@ -2,9 +2,6 @@ use core::arch::asm;
 use memory_addr::VirtAddr;
 use crate::arch::{SR_SPIE, SR_FS_INITIAL, SR_UXL_64};
 
-pub const TRAPFRAME_SIZE: usize = core::mem::size_of::<TrapFrame>();
-pub const STACK_ALIGN: usize = 16;
-
 include_asm_marcos!();
 
 /// General registers of RISC-V.

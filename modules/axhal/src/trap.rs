@@ -3,6 +3,9 @@
 use crate_interface::{call_interface, def_interface};
 use crate::arch::TrapFrame;
 
+pub const TRAPFRAME_SIZE: usize = core::mem::size_of::<TrapFrame>();
+pub const STACK_ALIGN: usize = 16;
+
 /// Trap handler interface.
 ///
 /// This trait is defined with the [`#[def_interface]`][1] attribute. Users

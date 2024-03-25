@@ -7,7 +7,39 @@ use aarch64_cpu::registers::{DAIF, TPIDR_EL0, TTBR0_EL1, TTBR1_EL1, VBAR_EL1};
 use memory_addr::{PhysAddr, VirtAddr};
 use tock_registers::interfaces::{Readable, Writeable};
 
-pub use self::context::{FpState, TaskContext, TrapFrame};
+pub use self::context::{FpState, TaskContext, TrapFrame, start_thread};
+use crate::mem::PAGE_SIZE_4K;
+
+pub const TASK_SIZE: usize = 0x40_0000_0000;
+pub const STACK_SIZE: usize = 32 * PAGE_SIZE_4K;
+
+/*
+ * This is the location that an ET_DYN program is loaded if exec'ed.
+ * Typical use of this is to invoke "./ld.so someprog" to test out
+ * a new version of the loader.
+ * We need to make sure that it is out of the way of the program
+ * that it will "exec", and that there is sufficient room for the brk.
+ */
+pub const ELF_ET_DYN_BASE: usize = (TASK_SIZE / 3) * 2;
+
+/*
+ * This decides where the kernel will search for a free chunk of vm
+ * space during mmap's.
+ */
+pub const TASK_UNMAPPED_BASE: usize = (TASK_SIZE / 3) & !(PAGE_SIZE_4K - 1);
+
+/// Status register flags
+pub const SR_SPIE:      usize = 0x00000020;  /* Previous Supervisor IE */
+pub const SR_FS_INITIAL:usize = 0x00002000;
+pub const SR_UXL_64:    usize = 0x200000000; /* XLEN = 64 for U-mode */
+
+#[inline]
+pub fn enable_sum() {
+}
+
+#[inline]
+pub fn disable_sum() {
+}
 
 /// Allows the current CPU to respond to interrupts.
 #[inline]

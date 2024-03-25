@@ -177,3 +177,7 @@ unsafe extern "C" fn fpstate_switch(_current_fpstate: &mut FpState, _next_fpstat
         options(noreturn),
     )
 }
+
+pub fn start_thread(regs: usize, pc: usize, sp: usize) {
+    unimplemented!("");
+}

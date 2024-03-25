@@ -1,8 +1,10 @@
 //! Page table manipulation.
 
+use core::cell::OnceCell;
 use axalloc::global_allocator;
 use page_table::PagingIf;
 
+use crate::arch::write_page_table_root;
 use crate::mem::{phys_to_virt, virt_to_phys, MemRegionFlags, PhysAddr, VirtAddr, PAGE_SIZE_4K};
 
 #[doc(no_inline)]
@@ -63,4 +65,24 @@ cfg_if::cfg_if! {
         /// The architecture-specific page table.
         pub type PageTable = page_table::aarch64::A64PageTable<PagingIfImpl>;
     }
+}
+
+static mut KERNEL_PAGE_TABLE: OnceCell<PageTable> = OnceCell::new();
+
+pub fn setup_page_table_root(pt: PageTable) {
+    unsafe {
+        let _ = KERNEL_PAGE_TABLE.set(pt);
+        write_page_table_root(KERNEL_PAGE_TABLE.get().unwrap().root_paddr());
+    }
+}
+
+pub fn reuse_page_table_root() {
+    unsafe {
+        assert!(KERNEL_PAGE_TABLE.get().is_some());
+        write_page_table_root(KERNEL_PAGE_TABLE.get().unwrap().root_paddr());
+    }
+}
+
+pub fn dup_kernel_pg_dir() -> PageTable {
+    unsafe { KERNEL_PAGE_TABLE.get().unwrap().clone() }
 }
