@@ -2,6 +2,7 @@ use core::arch::global_asm;
 
 use aarch64_cpu::registers::{ESR_EL1, FAR_EL1};
 use tock_registers::interfaces::Readable;
+use crate::trap::SyscallArgs;
 
 use super::TrapFrame;
 
@@ -83,4 +84,21 @@ fn handle_sync_exception(tf: &mut TrapFrame) {
 #[no_mangle]
 fn handle_irq_exception(_tf: &TrapFrame) {
     crate::trap::handle_irq_extern(0)
+}
+
+pub fn syscall_args(tf: &TrapFrame) -> SyscallArgs {
+    [
+        tf.r[0], tf.r[1], tf.r[2],
+        tf.r[3], tf.r[4], tf.r[5],
+    ].map(|x| x as usize)
+}
+
+pub fn syscall<F>(tf: &mut TrapFrame, do_syscall: F)
+where
+    F: FnOnce(SyscallArgs, usize) -> usize
+{
+    error!("Syscall: {:#x}", tf.r[8]);
+    let args = syscall_args(tf);
+    tf.r[0] = do_syscall(args, tf.r[8] as usize) as u64;
+    //tf.sepc += 4;
 }

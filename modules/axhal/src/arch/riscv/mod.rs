@@ -5,6 +5,7 @@ mod context;
 mod trap;
 
 use memory_addr::{PhysAddr, VirtAddr};
+use crate::mem::phys_to_virt;
 use riscv::asm;
 use riscv::register::{satp, sstatus, stvec};
 #[cfg(feature = "paging")]
@@ -99,6 +100,18 @@ pub unsafe fn write_page_table_root(root_paddr: PhysAddr) {
     if old_root != root_paddr {
         satp::set(satp::Mode::Sv39, 0, root_paddr.as_usize() >> 12);
         asm::sfence_vma_all();
+    }
+}
+pub unsafe fn write_page_table_root0(root_paddr: PhysAddr) {
+    write_page_table_root(root_paddr)
+}
+
+pub fn sync_kernel_mappings(src_paddr: PhysAddr, dst_paddr: PhysAddr) {
+    let dst_ptr = phys_to_virt(dst_paddr).as_mut_ptr();
+    let src_ptr = phys_to_virt(src_paddr).as_ptr();
+    unsafe {
+        core::ptr::copy_nonoverlapping(src_ptr.wrapping_add(PAGE_SIZE_4K/2), dst_ptr.wrapping_add(PAGE_SIZE_4K/2), PAGE_SIZE_4K/2);
+        info!("CLONE: from {:#X} => {:#X}", src_ptr as usize, dst_ptr as usize);
     }
 }
 

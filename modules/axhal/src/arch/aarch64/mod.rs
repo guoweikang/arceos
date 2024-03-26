@@ -9,6 +9,7 @@ use tock_registers::interfaces::{Readable, Writeable};
 
 pub use self::context::{FpState, TaskContext, TrapFrame, start_thread};
 use crate::mem::PAGE_SIZE_4K;
+pub use trap::syscall;
 
 pub const TASK_SIZE: usize = 0x40_0000_0000;
 pub const STACK_SIZE: usize = 32 * PAGE_SIZE_4K;
@@ -96,11 +97,13 @@ pub fn read_page_table_root0() -> PhysAddr {
 /// This function is unsafe as it changes the virtual memory address space.
 pub unsafe fn write_page_table_root(root_paddr: PhysAddr) {
     let old_root = read_page_table_root();
-    trace!("set page table root: {:#x} => {:#x}", old_root, root_paddr);
+    debug!("set page table root: {:#x} => {:#x}", old_root, root_paddr);
     if old_root != root_paddr {
         // kernel space page table use TTBR1 (0xffff_0000_0000_0000..0xffff_ffff_ffff_ffff)
         TTBR1_EL1.set(root_paddr.as_usize() as _);
+        debug!("set page table root: 2");
         flush_tlb(None);
+        debug!("set page table root: 3");
     }
 }
 
@@ -166,4 +169,7 @@ pub fn read_thread_pointer() -> usize {
 #[inline]
 pub unsafe fn write_thread_pointer(tpidr_el0: usize) {
     TPIDR_EL0.set(tpidr_el0 as _)
+}
+
+pub fn sync_kernel_mappings(_src: PhysAddr, _dst: PhysAddr) {
 }

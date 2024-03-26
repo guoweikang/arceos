@@ -105,3 +105,11 @@ exception_vector_base:
 .Lexception_return:
     RESTORE_REGS
     eret
+
+.section .text
+.balign 4
+.global ret_from_fork
+ret_from_fork:
+    mov sp, x0
+    RESTORE_REGS
+    eret

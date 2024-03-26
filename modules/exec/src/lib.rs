@@ -224,6 +224,7 @@ fn load_elf_interp(file: FileRef, load_bias: usize, app_entry: usize) -> LinuxRe
     error!("set brk...");
     set_brk(elf_bss, elf_brk);
 
+    error!("pad bss...");
     padzero(elf_bss);
 
     error!("start thread...");

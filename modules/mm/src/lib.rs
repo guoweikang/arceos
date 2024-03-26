@@ -9,12 +9,12 @@ use alloc::collections::BTreeMap;
 use alloc::sync::Arc;
 use core::cell::OnceCell;
 use axfile::fops::File;
-use axhal::paging::dup_kernel_pg_dir;
+use axhal::paging::pgd_alloc;
 use axhal::mem::phys_to_virt;
 use axhal::paging::MappingFlags;
 use axhal::paging::PageTable;
 use axhal::paging::PagingResult;
-use axhal::arch::write_page_table_root;
+use axhal::arch::write_page_table_root0;
 use axio::SeekFrom;
 use core::cell::RefCell;
 use core::sync::atomic::AtomicUsize;
@@ -68,7 +68,7 @@ impl MmStruct {
         Self {
             id: MM_UNIQUE_ID.fetch_add(1, Ordering::SeqCst),
             vmas: BTreeMap::new(),
-            pgd: RefCell::new(dup_kernel_pg_dir()),
+            pgd: RefCell::new(pgd_alloc()),
             brk: 0,
         }
     }
@@ -124,9 +124,9 @@ pub fn switch_mm(prev_mm_id: usize, next_mm: Arc<SpinNoIrq<MmStruct>>) {
     if prev_mm_id == locked_next_mm.id {
         return;
     }
-    error!("###### switch prev {} next {}; paddr{:#X}",
+    error!("###### switch prev {} next {}; paddr {:#X}",
         prev_mm_id, locked_next_mm.id, locked_next_mm.root_paddr());
     unsafe {
-        write_page_table_root(locked_next_mm.root_paddr().into());
+        write_page_table_root0(locked_next_mm.root_paddr().into());
     }
 }

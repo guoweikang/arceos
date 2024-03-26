@@ -75,7 +75,6 @@ fn do_syscall(args: SyscallArgs, sysno: usize) -> usize {
 impl SyscallHandler for LinuxSyscallHandler {
     fn handle_syscall(tf: &mut TrapFrame) {
         axhal::arch::syscall(tf, do_syscall);
-        tf.sepc += 4;
     }
 }
 

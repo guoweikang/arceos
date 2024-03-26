@@ -4,7 +4,7 @@ use core::cell::OnceCell;
 use axalloc::global_allocator;
 use page_table::PagingIf;
 
-use crate::arch::write_page_table_root;
+use crate::arch::{write_page_table_root, sync_kernel_mappings};
 use crate::mem::{phys_to_virt, virt_to_phys, MemRegionFlags, PhysAddr, VirtAddr, PAGE_SIZE_4K};
 
 #[doc(no_inline)]
@@ -69,20 +69,27 @@ cfg_if::cfg_if! {
 
 static mut KERNEL_PAGE_TABLE: OnceCell<PageTable> = OnceCell::new();
 
+fn kernel_pg_root_paddr() -> PhysAddr {
+    unsafe { KERNEL_PAGE_TABLE.get().unwrap().root_paddr() }
+}
+
 pub fn setup_page_table_root(pt: PageTable) {
     unsafe {
         let _ = KERNEL_PAGE_TABLE.set(pt);
-        write_page_table_root(KERNEL_PAGE_TABLE.get().unwrap().root_paddr());
+        write_page_table_root(kernel_pg_root_paddr());
     }
 }
 
 pub fn reuse_page_table_root() {
     unsafe {
         assert!(KERNEL_PAGE_TABLE.get().is_some());
-        write_page_table_root(KERNEL_PAGE_TABLE.get().unwrap().root_paddr());
+        write_page_table_root(kernel_pg_root_paddr());
     }
 }
 
-pub fn dup_kernel_pg_dir() -> PageTable {
-    unsafe { KERNEL_PAGE_TABLE.get().unwrap().clone() }
+pub fn pgd_alloc() -> PageTable {
+    let pgtable = unsafe { KERNEL_PAGE_TABLE.get().unwrap().clone() };
+    /* Copy kernel mappings */
+    sync_kernel_mappings(kernel_pg_root_paddr(), pgtable.root_paddr());
+    pgtable
 }

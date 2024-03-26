@@ -59,4 +59,5 @@ where
     error!("Syscall: {:#x}", tf.regs.a7);
     let args = syscall_args(tf);
     tf.regs.a0 = do_syscall(args, tf.regs.a7);
+    tf.sepc += 4;
 }
