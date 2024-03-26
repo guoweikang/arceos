@@ -21,11 +21,79 @@ extern crate log;
 pub const AT_FDCWD: isize = -100;
 pub const AT_EMPTY_PATH: isize = 0x1000;
 
+const MAX_SYSCALL_ARGS: usize = 6;
+type SyscallArgs = [usize; MAX_SYSCALL_ARGS];
+
 struct LinuxSyscallHandler;
+
+fn arch_syscall_args(tf: &TrapFrame) -> SyscallArgs {
+    [
+        tf.regs.a0, tf.regs.a1, tf.regs.a2,
+        tf.regs.a3, tf.regs.a4, tf.regs.a5,
+    ]
+}
+
+fn arch_syscall<F>(tf: &mut TrapFrame, do_syscall: F)
+where
+    F: FnOnce(SyscallArgs, usize) -> usize
+{
+    error!("Syscall: {:#x}", tf.regs.a7);
+    let args = arch_syscall_args(tf);
+    tf.regs.a0 = do_syscall(args, tf.regs.a7);
+}
+
+fn do_syscall(args: SyscallArgs, sysno: usize) -> usize {
+    match sysno {
+        LINUX_SYSCALL_OPENAT => {
+            linux_syscall_openat(args)
+        },
+        LINUX_SYSCALL_CLOSE => {
+            linux_syscall_close(args)
+        },
+        LINUX_SYSCALL_READ => {
+            linux_syscall_read(args)
+        },
+        LINUX_SYSCALL_WRITE => {
+            linux_syscall_write(args)
+        },
+        LINUX_SYSCALL_WRITEV => {
+            linux_syscall_writev(args)
+        },
+        LINUX_SYSCALL_READLINKAT => {
+            usize::MAX
+        },
+        LINUX_SYSCALL_FSTATAT => {
+            linux_syscall_fstatat(args)
+        },
+        LINUX_SYSCALL_UNAME => {
+            linux_syscall_uname(args)
+        },
+        LINUX_SYSCALL_BRK => {
+            linux_syscall_brk(args)
+        },
+        LINUX_SYSCALL_MUNMAP => {
+            linux_syscall_munmap(args)
+        },
+        LINUX_SYSCALL_MMAP => {
+            linux_syscall_mmap(args)
+        },
+        LINUX_SYSCALL_EXIT => {
+            linux_syscall_exit(args)
+        },
+        LINUX_SYSCALL_EXIT_GROUP => {
+            linux_syscall_exit_group(args)
+        },
+        _ => {
+            0
+        }
+    }
+}
 
 #[crate_interface::impl_interface]
 impl SyscallHandler for LinuxSyscallHandler {
     fn handle_syscall(tf: &mut TrapFrame) {
+        arch_syscall(tf, do_syscall);
+        /*
         let eid = tf.regs.a7;
         error!("Syscall: {:#x}", eid);
         tf.regs.a0 = match eid {
@@ -72,6 +140,7 @@ impl SyscallHandler for LinuxSyscallHandler {
                 0
             }
         };
+        */
         tf.sepc += 4;
     }
 }
@@ -137,11 +206,8 @@ pub fn get_user_str(ptr: usize) -> String {
     s
 }
 
-fn linux_syscall_openat(tf: &TrapFrame) -> usize {
-    let dtd = tf.regs.a0;
-    let filename = tf.regs.a1;
-    let flags = tf.regs.a2;
-    let mode = tf.regs.a3;
+fn linux_syscall_openat(args: SyscallArgs) -> usize {
+    let [dtd, filename, flags, mode, ..] = args;
 
     let filename = get_user_str(filename);
     error!("filename: {}\n", filename);
@@ -163,15 +229,13 @@ fn linux_syscall_openat(tf: &TrapFrame) -> usize {
     fd
 }
 
-fn linux_syscall_close(tf: &TrapFrame) -> usize {
+fn linux_syscall_close(args: SyscallArgs) -> usize {
     error!("linux_syscall_close");
     0
 }
 
-fn linux_syscall_read(tf: &TrapFrame) -> usize {
-    let fd = tf.regs.a0;
-    let buf = tf.regs.a1;
-    let count = tf.regs.a2;
+fn linux_syscall_read(args: SyscallArgs) -> usize {
+    let [fd, buf, count, ..] = args;
 
     let user_buf = unsafe {
         core::slice::from_raw_parts_mut(buf as *mut u8, count)
@@ -197,14 +261,11 @@ fn linux_syscall_read(tf: &TrapFrame) -> usize {
     pos
 }
 
-fn linux_syscall_write(tf: &TrapFrame) -> usize {
-    use core::slice;
-    debug!("write: {:#x}, {:#x}, {:#x}",
-        tf.regs.a0, tf.regs.a1, tf.regs.a2);
+fn linux_syscall_write(args: SyscallArgs) -> usize {
+    let [fd, buf, size, ..] = args;
+    debug!("write: {:#x}, {:#x}, {:#x}", fd, buf, size);
 
-    let buf = tf.regs.a1 as *const u8;
-    let size = tf.regs.a2;
-    let bytes = unsafe { slice::from_raw_parts(buf as *const _, size) };
+    let bytes = unsafe { core::slice::from_raw_parts(buf as *const u8, size) };
     /*
     let s = String::from_utf8(bytes.into());
     debug!("{}", s.unwrap());
@@ -217,19 +278,15 @@ fn linux_syscall_write(tf: &TrapFrame) -> usize {
     return size;
 }
 
-fn linux_syscall_writev(tf: &TrapFrame) -> usize {
-    use core::slice;
+fn linux_syscall_writev(args: SyscallArgs) -> usize {
+    let [fd, array, size, ..] = args;
+    debug!("writev: {:#x}, {:#x}, {:#x}", fd, array, size);
 
-    debug!("writev: {:#x}, {:#x}, {:#x}",
-        tf.regs.a0, tf.regs.a1, tf.regs.a2);
-
-    let array = tf.regs.a1 as *const iovec;
-    let size = tf.regs.a2;
     axhal::arch::enable_sum();
-    let iov_array = unsafe { slice::from_raw_parts(array, size) };
+    let iov_array = unsafe { core::slice::from_raw_parts(array as *const iovec, size) };
     for iov in iov_array {
         debug!("iov: {:#X} {:#X}", iov.iov_base, iov.iov_len);
-        let bytes = unsafe { slice::from_raw_parts(iov.iov_base as *const _, iov.iov_len) };
+        let bytes = unsafe { core::slice::from_raw_parts(iov.iov_base as *const _, iov.iov_len) };
         let s = String::from_utf8(bytes.into());
         error!("{}", s.unwrap());
     }
@@ -261,11 +318,8 @@ pub struct KernelStat {
     pub st_ctime_nsec: isize,
 }
 
-fn linux_syscall_fstatat(tf: &TrapFrame) -> usize {
-    let dirfd = tf.regs.a0;
-    let pathname = tf.regs.a1;
-    let statbuf = tf.regs.a2;
-    let flags = tf.regs.a3;
+fn linux_syscall_fstatat(args: SyscallArgs) -> usize {
+    let [dirfd, pathname, statbuf, flags, ..] = args;
 
     if (flags as isize & AT_EMPTY_PATH) == 0 {
         let pathname = get_user_str(pathname);
@@ -308,14 +362,8 @@ fn linux_syscall_fstatat(tf: &TrapFrame) -> usize {
     0
 }
 
-// void *mmap(void *addr, size_t len, int prot, int flags, int fd, off_t off);
-fn linux_syscall_mmap(tf: &TrapFrame) -> usize {
-    let va = tf.regs.a0;
-    let len = tf.regs.a1;
-    let prot = tf.regs.a2;
-    let flags = tf.regs.a3;
-    let fd = tf.regs.a4;
-    let offset = tf.regs.a5;
+fn linux_syscall_mmap(args: SyscallArgs) -> usize {
+    let [va, len, prot, flags, fd, offset] = args;
     assert!(is_aligned_4k(va));
     error!("###### mmap!!! {:#x} {:#x} {:#x} {:#x} {:#x} {:#x}", va, len, prot, flags, fd, offset);
 
@@ -341,8 +389,8 @@ struct utsname {
     domainname: [u8; UTS_LEN + 1],
 }
 
-fn linux_syscall_uname(tf: &TrapFrame) -> usize {
-    let ptr = tf.regs.a0;
+fn linux_syscall_uname(args: SyscallArgs) -> usize {
+    let ptr = args[0];
     info!("uname: {:#x}", ptr);
 
     let uname = unsafe { (ptr as *mut utsname).as_mut().unwrap() };
@@ -357,24 +405,6 @@ fn linux_syscall_uname(tf: &TrapFrame) -> usize {
     return 0;
 }
 
-/*
-fn enable_user_access() {
-    /* Enable access to user memory */
-    unsafe { asm!("
-        li t6, 0x00040000
-        csrs sstatus, t6"
-    )}
-}
-
-fn disable_user_access() {
-    /* Disable access to user memory */
-    unsafe { asm!("
-        li t6, 0x00040000
-        csrc sstatus, t6"
-    )}
-}
-*/
-
 fn init_bytes_from_str(dst: &mut [u8], src: &str) {
     let src = src.as_bytes();
     let (left, right) = dst.split_at_mut(src.len());
@@ -384,28 +414,13 @@ fn init_bytes_from_str(dst: &mut [u8], src: &str) {
     axhal::arch::disable_sum();
 }
 
-/*
-fn alloc_pages(
-    num_pages: usize, align_pow2: usize
-) -> usize {
-    axalloc::global_allocator().alloc_pages(num_pages, align_pow2)
-        .map(|va| virt_to_phys(va.into())).ok().unwrap().into()
-}
-*/
-
-/*
-fn map_region(va: usize, pa: usize, len: usize, flags: usize) {
-    task::current().map_region(va, pa, len, flags);
-}
-*/
-
-fn linux_syscall_brk(tf: &TrapFrame) -> usize {
+fn linux_syscall_brk(args: SyscallArgs) -> usize {
     // Have a guard for mm to lock this whole function,
     // because mm.brk() and mm.set_brk() should be in a atomic context.
     let mm = task::current().mm();
     let brk = mm.lock().brk();
 
-    let va = align_up_4k(tf.regs.a0);
+    let va = align_up_4k(args[0]);
     assert!(is_aligned_4k(brk));
     error!("brk!!! {:#x}, {:#x}", va, brk);
 
@@ -415,31 +430,27 @@ fn linux_syscall_brk(tf: &TrapFrame) -> usize {
         assert!(va > brk);
         let offset = va - brk;
         assert!(is_aligned_4k(offset));
-        //let n = offset >> PAGE_SHIFT;
-        //let pa = alloc_pages(n, PAGE_SIZE_4K);
         mmap::mmap(brk, offset, 0, MAP_FIXED|MAP_ANONYMOUS, None, 0).unwrap();
         let _ = mmap::faultin_page(brk);
-        //map_region(brk, pa, n*PAGE_SIZE_4K, 1);
         mm.lock().set_brk(va);
         va
     }
 }
 
-fn linux_syscall_munmap(tf: &TrapFrame) -> usize {
-    let va = tf.regs.a0;
-    let len = tf.regs.a1;
+fn linux_syscall_munmap(args: SyscallArgs) -> usize {
+    let [va, len, ..] = args;
     debug!("munmap!!! {:#x} {:#x}", va, len);
     unimplemented!();
     //return 0;
 }
 
-fn linux_syscall_exit(tf: &TrapFrame) -> usize {
-    let ret = tf.regs.a0 as i32;
+fn linux_syscall_exit(args: SyscallArgs) -> usize {
+    let ret = args[0] as i32;
     debug!("exit ...{}", ret);
     task::exit(ret);
 }
 
-fn linux_syscall_exit_group(_tf: &TrapFrame) -> usize {
+fn linux_syscall_exit_group(_tf: SyscallArgs) -> usize {
     debug!("exit_group!");
     return 0;
 }
