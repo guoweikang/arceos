@@ -12,6 +12,7 @@ use crate::paging::PageTable;
 use crate::mem::PAGE_SIZE_4K;
 
 pub use self::context::{GeneralRegisters, TaskContext, TrapFrame, start_thread};
+pub use trap::syscall;
 
 pub const TASK_SIZE: usize = 0x40_0000_0000;
 pub const STACK_SIZE: usize = 32 * PAGE_SIZE_4K;

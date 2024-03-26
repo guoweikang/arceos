@@ -6,6 +6,9 @@ use crate::arch::TrapFrame;
 pub const TRAPFRAME_SIZE: usize = core::mem::size_of::<TrapFrame>();
 pub const STACK_ALIGN: usize = 16;
 
+const MAX_SYSCALL_ARGS: usize = 6;
+pub type SyscallArgs = [usize; MAX_SYSCALL_ARGS];
+
 /// Trap handler interface.
 ///
 /// This trait is defined with the [`#[def_interface]`][1] attribute. Users

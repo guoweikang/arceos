@@ -3,6 +3,7 @@ use riscv::register::stval;
 
 use crate::trap::TRAPFRAME_SIZE;
 use super::TrapFrame;
+use crate::trap::SyscallArgs;
 
 include_asm_marcos!();
 
@@ -42,4 +43,20 @@ fn riscv_trap_handler(tf: &mut TrapFrame, _from_user: bool) {
             );
         }
     }
+}
+
+pub fn syscall_args(tf: &TrapFrame) -> SyscallArgs {
+    [
+        tf.regs.a0, tf.regs.a1, tf.regs.a2,
+        tf.regs.a3, tf.regs.a4, tf.regs.a5,
+    ]
+}
+
+pub fn syscall<F>(tf: &mut TrapFrame, do_syscall: F)
+where
+    F: FnOnce(SyscallArgs, usize) -> usize
+{
+    error!("Syscall: {:#x}", tf.regs.a7);
+    let args = syscall_args(tf);
+    tf.regs.a0 = do_syscall(args, tf.regs.a7);
 }

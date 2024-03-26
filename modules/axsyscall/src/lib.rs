@@ -14,6 +14,7 @@ use axfile::fops::OpenOptions;
 use alloc::sync::Arc;
 use spinlock::SpinNoIrq;
 use axerrno::LinuxError;
+use axhal::trap::SyscallArgs;
 
 #[macro_use]
 extern crate log;
@@ -21,26 +22,7 @@ extern crate log;
 pub const AT_FDCWD: isize = -100;
 pub const AT_EMPTY_PATH: isize = 0x1000;
 
-const MAX_SYSCALL_ARGS: usize = 6;
-type SyscallArgs = [usize; MAX_SYSCALL_ARGS];
-
 struct LinuxSyscallHandler;
-
-fn arch_syscall_args(tf: &TrapFrame) -> SyscallArgs {
-    [
-        tf.regs.a0, tf.regs.a1, tf.regs.a2,
-        tf.regs.a3, tf.regs.a4, tf.regs.a5,
-    ]
-}
-
-fn arch_syscall<F>(tf: &mut TrapFrame, do_syscall: F)
-where
-    F: FnOnce(SyscallArgs, usize) -> usize
-{
-    error!("Syscall: {:#x}", tf.regs.a7);
-    let args = arch_syscall_args(tf);
-    tf.regs.a0 = do_syscall(args, tf.regs.a7);
-}
 
 fn do_syscall(args: SyscallArgs, sysno: usize) -> usize {
     match sysno {
@@ -92,55 +74,7 @@ fn do_syscall(args: SyscallArgs, sysno: usize) -> usize {
 #[crate_interface::impl_interface]
 impl SyscallHandler for LinuxSyscallHandler {
     fn handle_syscall(tf: &mut TrapFrame) {
-        arch_syscall(tf, do_syscall);
-        /*
-        let eid = tf.regs.a7;
-        error!("Syscall: {:#x}", eid);
-        tf.regs.a0 = match eid {
-            LINUX_SYSCALL_OPENAT => {
-                linux_syscall_openat(tf)
-            },
-            LINUX_SYSCALL_CLOSE => {
-                linux_syscall_close(tf)
-            },
-            LINUX_SYSCALL_READ => {
-                linux_syscall_read(tf)
-            },
-            LINUX_SYSCALL_WRITE => {
-                linux_syscall_write(tf)
-            },
-            LINUX_SYSCALL_WRITEV => {
-                linux_syscall_writev(tf)
-            },
-            LINUX_SYSCALL_READLINKAT => {
-                usize::MAX
-            },
-            LINUX_SYSCALL_FSTATAT => {
-                linux_syscall_fstatat(tf)
-            },
-            LINUX_SYSCALL_UNAME => {
-                linux_syscall_uname(tf)
-            },
-            LINUX_SYSCALL_BRK => {
-                linux_syscall_brk(tf)
-            },
-            LINUX_SYSCALL_MUNMAP => {
-                linux_syscall_munmap(tf)
-            },
-            LINUX_SYSCALL_MMAP => {
-                linux_syscall_mmap(tf)
-            },
-            LINUX_SYSCALL_EXIT => {
-                linux_syscall_exit(tf)
-            },
-            LINUX_SYSCALL_EXIT_GROUP => {
-                linux_syscall_exit_group(tf)
-            },
-            _ => {
-                0
-            }
-        };
-        */
+        axhal::arch::syscall(tf, do_syscall);
         tf.sepc += 4;
     }
 }
