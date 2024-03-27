@@ -1,10 +1,10 @@
 #![no_std]
+#![feature(get_mut_unchecked)]
 
-use core::ops::Deref;
+use core::ops::{Deref, DerefMut};
 use core::mem::ManuallyDrop;
 use core::sync::atomic::{AtomicUsize, Ordering};
 use core::{alloc::Layout, cell::UnsafeCell, ptr::NonNull};
-use core::cell::OnceCell;
 
 #[macro_use]
 extern crate log;
@@ -57,7 +57,7 @@ pub struct TaskStruct {
 
     pub entry: Option<*mut dyn FnOnce()>,
 
-    mm: OnceCell<Arc<SpinNoIrq<MmStruct>>>,
+    mm: Option<Arc<SpinNoIrq<MmStruct>>>,
     pub active_mm_id: AtomicUsize,
     pub fs: Arc<SpinNoIrq<FsStruct>>,
     pub filetable: Arc<SpinNoIrq<FileTable>>,
@@ -80,7 +80,7 @@ impl TaskStruct {
 
             entry: None,
 
-            mm: OnceCell::new(),
+            mm: None,
             active_mm_id: AtomicUsize::new(0),
             fs: Arc::new(SpinNoIrq::new(FsStruct::new())),
             filetable: Arc::new(SpinNoIrq::new(FileTable::new())),
@@ -103,17 +103,17 @@ impl TaskStruct {
     }
 
     pub fn try_mm(&self) -> Option<Arc<SpinNoIrq<MmStruct>>> {
-        self.mm.get().and_then(|mm| Some(mm.clone()))
+        self.mm.as_ref().and_then(|mm| Some(mm.clone()))
     }
 
     pub fn mm(&self) -> Arc<SpinNoIrq<MmStruct>> {
-        self.mm.get().expect("NOT a user process.").clone()
+        self.mm.as_ref().expect("NOT a user process.").clone()
     }
 
-    pub fn alloc_mm(&self) {
+    pub fn alloc_mm(&mut self) {
         error!("alloc_mm...");
-        assert!(self.mm.get().is_none());
-        let _ = self.mm.set(Arc::new(SpinNoIrq::new(MmStruct::new())));
+        assert!(self.mm.is_none());
+        self.mm.replace(Arc::new(SpinNoIrq::new(MmStruct::new())));
         switch_mm(0, self.mm());
     }
 
@@ -161,6 +161,12 @@ impl CurrentTask {
     /// Converts [`CurrentTask`] to [`TaskRef`].
     pub fn as_task_ref(&self) -> &TaskRef {
         &self.0
+    }
+
+    pub fn as_task_mut(&mut self) -> &mut TaskStruct {
+        unsafe {
+            Arc::get_mut_unchecked(&mut self.0)
+        }
     }
 
     pub(crate) unsafe fn init_current(init_task: TaskRef) {

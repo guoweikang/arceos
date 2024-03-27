@@ -26,14 +26,18 @@ use axhal::arch::{TASK_SIZE, ELF_ET_DYN_BASE};
 use mmap::{MAP_FIXED, MAP_ANONYMOUS};
 use axhal::arch::STACK_SIZE;
 use axhal::arch::{enable_sum, disable_sum};
+use kernel_guard::NoPreempt;
 
 const ELF_HEAD_BUF_SIZE: usize = 256;
 
 pub fn kernel_execve(filename: &str) -> LinuxResult {
     error!("kernel_execve... {}", filename);
 
-    let task = task::current();
-    task.alloc_mm();
+    let mut task = task::current();
+    {
+        let _ = NoPreempt::new();
+        task.as_task_mut().alloc_mm();
+    }
 
     // TODO: Move it into kernel_init().
     setup_zero_page()?;

@@ -16,3 +16,4 @@ memory_addr = { path = "../../crates/memory_addr" }
 elf = { path = "../../crates/elf" }
 axio = { path = "../../crates/axio" }
 spinlock = { path = "../../crates/spinlock" }
+kernel_guard = { path = "../../crates/kernel_guard" }
