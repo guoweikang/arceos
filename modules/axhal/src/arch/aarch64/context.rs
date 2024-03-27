@@ -1,6 +1,9 @@
 use core::arch::asm;
 use memory_addr::VirtAddr;
 
+/// PSR bits
+const PSR_MODE_EL0t: usize = 0x00000000;
+
 /// Saved registers when a trap (exception) occurs.
 #[repr(C)]
 #[derive(Debug, Default, Clone, Copy)]
@@ -179,5 +182,13 @@ unsafe extern "C" fn fpstate_switch(_current_fpstate: &mut FpState, _next_fpstat
 }
 
 pub fn start_thread(regs: usize, pc: usize, sp: usize) {
-    unimplemented!("");
+    let mut regs = unsafe {
+        core::slice::from_raw_parts_mut(
+            regs as *mut TrapFrame, 1
+        )
+    };
+    error!("{:#X} {:#X}", pc, sp);
+    regs[0].elr = pc as u64;
+    regs[0].spsr = PSR_MODE_EL0t as u64;
+    regs[0].usp = sp as u64;
 }

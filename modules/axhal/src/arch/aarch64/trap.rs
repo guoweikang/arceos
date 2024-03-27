@@ -61,13 +61,14 @@ fn handle_sync_exception(tf: &mut TrapFrame) {
         Some(ESR_EL1::EC::Value::DataAbortCurrentEL)
         | Some(ESR_EL1::EC::Value::InstrAbortCurrentEL) => {
             let iss = esr.read(ESR_EL1::ISS);
-            panic!(
+            info!(
                 "EL1 Page Fault @ {:#x}, FAR={:#x}, ISS={:#x}:\n{:#x?}",
                 tf.elr,
                 FAR_EL1.get(),
                 iss,
                 tf,
             );
+            crate::trap::handle_page_fault(FAR_EL1.get() as usize, 0);
         }
         _ => {
             panic!(
