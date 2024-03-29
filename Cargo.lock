@@ -448,13 +448,13 @@ dependencies = [
  "axfs_devfs",
  "axfs_ramfs",
  "axfs_vfs",
+ "axsync",
  "cfg-if",
  "crate_interface",
  "fatfs",
  "fstree",
  "lazy_init",
  "log",
- "spinlock",
  "task",
 ]
 

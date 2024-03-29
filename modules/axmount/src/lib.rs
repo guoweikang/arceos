@@ -10,7 +10,7 @@ mod mounts;
 
 use axdriver::{prelude::*, AxDeviceContainer};
 use alloc::sync::Arc;
-pub use spinlock::{SpinNoIrq as Mutex};
+use axsync::Mutex;
 use lazy_init::LazyInit;
 use axfs_vfs::VfsOps;
 use fstree::RootDirectory;
