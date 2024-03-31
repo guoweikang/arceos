@@ -9,7 +9,6 @@ use crate::mem::phys_to_virt;
 use riscv::asm;
 use riscv::register::{satp, sstatus, stvec};
 #[cfg(feature = "paging")]
-use crate::paging::PageTable;
 use crate::mem::PAGE_SIZE_4K;
 
 pub use self::context::{GeneralRegisters, TaskContext, TrapFrame, start_thread};

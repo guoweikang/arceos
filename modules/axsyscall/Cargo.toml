@@ -11,6 +11,7 @@ task = { path = "../task" }
 mmap = { path = "../mmap" }
 axalloc = { path = "../axalloc" }
 axfile = { path = "../axfile" }
+fileops = { path = "../fileops" }
 
 scheduler = { path = "../../crates/scheduler" }
 log = "0.4"

@@ -1,7 +1,7 @@
 #![no_std]
 #![feature(get_mut_unchecked)]
 
-use core::ops::{Deref, DerefMut};
+use core::ops::Deref;
 use core::mem::ManuallyDrop;
 use core::sync::atomic::{AtomicUsize, Ordering};
 use core::{alloc::Layout, cell::UnsafeCell, ptr::NonNull};

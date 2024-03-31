@@ -19,7 +19,7 @@ pub const MAP_FIXED: usize = 0x10;
 pub const MAP_ANONYMOUS: usize = 0x20;
 
 pub fn mmap(
-    mut va: usize, mut len: usize, prot: usize, flags: usize,
+    va: usize, len: usize, prot: usize, flags: usize,
     fd: usize, offset: usize
 ) -> LinuxResult<usize> {
     let current = task::current();
@@ -53,7 +53,7 @@ pub fn _mmap(
     Ok(va)
 }
 
-pub fn get_unmapped_vma(va: usize, len: usize) -> usize {
+pub fn get_unmapped_vma(_va: usize, len: usize) -> usize {
     let mm = task::current().mm();
     let locked_mm = mm.lock();
     let mut gap_end = TASK_UNMAPPED_BASE;

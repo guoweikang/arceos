@@ -10,7 +10,6 @@ mod mounts;
 
 use axdriver::{prelude::*, AxDeviceContainer};
 use alloc::sync::Arc;
-use axsync::Mutex;
 use lazy_init::LazyInit;
 use axfs_vfs::VfsOps;
 use fstree::RootDirectory;

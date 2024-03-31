@@ -163,7 +163,7 @@ unsafe extern "C" fn context_switch(_current_task: &mut TaskContext, _next_task:
 }
 
 pub fn start_thread(regs: usize, pc: usize, sp: usize) {
-    let mut regs = unsafe {
+    let regs = unsafe {
         core::slice::from_raw_parts_mut(
             regs as *mut TrapFrame, 1
         )

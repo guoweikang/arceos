@@ -4,7 +4,7 @@
 extern crate log;
 extern crate alloc;
 use alloc::sync::Arc;
-use alloc::{collections::BTreeMap, string::String, vec, vec::Vec};
+use alloc::vec::Vec;
 use core::str::from_utf8;
 use core::{mem::align_of, mem::size_of_val, ptr::null};
 
@@ -21,7 +21,7 @@ use elf::parse::ParseAt;
 use axio::SeekFrom;
 use spinlock::SpinNoIrq;
 use mmap::FileRef;
-use axhal::arch::{TrapFrame, start_thread};
+use axhal::arch::start_thread;
 use axhal::arch::{TASK_SIZE, ELF_ET_DYN_BASE};
 use mmap::{MAP_FIXED, MAP_ANONYMOUS};
 use axhal::arch::STACK_SIZE;
@@ -54,7 +54,7 @@ fn setup_zero_page() -> LinuxResult {
 //////////////////////////////////////////////
 
 struct UserStack {
-    base: usize,
+    _base: usize,
     sp: usize,
     ptr: usize,
 }
@@ -62,7 +62,7 @@ struct UserStack {
 impl UserStack {
     pub fn new(base: usize, ptr: usize) -> Self {
         Self {
-            base,
+            _base: base,
             sp: base,
             ptr,
         }
@@ -94,6 +94,7 @@ impl UserStack {
 
 //////////////////////////////////////////////
 
+/*
 const AT_PHDR: u8 = 3;
 const AT_PHENT: u8 = 4;
 const AT_PHNUM: u8 = 5;
@@ -105,7 +106,6 @@ pub fn get_auxv_vector(
     entry: usize
 ) -> BTreeMap<u8, usize> {
     let mut map = BTreeMap::new();
-    /*
     map.insert(
         AT_PHDR,
         40,
@@ -115,12 +115,12 @@ pub fn get_auxv_vector(
     map.insert(AT_ENTRY, entry);
     map.insert(AT_RANDOM, 0);
     map.insert(AT_PAGESZ, PAGE_SIZE_4K);
-    */
     map
 }
+*/
 
-fn get_arg_page(entry: usize) -> LinuxResult<usize> {
-    let auxv = get_auxv_vector(entry);
+fn get_arg_page(_entry: usize) -> LinuxResult<usize> {
+    //let auxv = get_auxv_vector(entry);
 
     let va = TASK_SIZE - STACK_SIZE;
     mmap::_mmap(va, STACK_SIZE, 0, MAP_FIXED|MAP_ANONYMOUS, None, 0)?;
@@ -129,7 +129,7 @@ fn get_arg_page(entry: usize) -> LinuxResult<usize> {
 
     let random_str: &[usize; 2] = &[3703830112808742751usize, 7081108068768079778usize];
     stack.push(random_str.as_slice());
-    let random_str_pos = stack.get_sp();
+    //let random_str_pos = stack.get_sp();
 
     let arg1 = "/sbin/init";
     let arg0 = "/lib/ld-linux-riscv64-lp64d.so.1";
@@ -140,6 +140,7 @@ fn get_arg_page(entry: usize) -> LinuxResult<usize> {
         .collect();
 
     stack.push(&[null::<u8>(), null::<u8>()]);
+    /*
     for (key, value) in auxv.iter() {
         if (*key) == 25 {
             // AT RANDOM
@@ -148,6 +149,7 @@ fn get_arg_page(entry: usize) -> LinuxResult<usize> {
             stack.push(&[*key as usize, *value]);
         }
     }
+    */
 
     stack.push(&[null::<u8>()]);
     stack.push(&[null::<u8>()]);
@@ -156,18 +158,6 @@ fn get_arg_page(entry: usize) -> LinuxResult<usize> {
     stack.push(argv_slice.as_slice());
     // argc
     stack.push(&[args.len()]);
-    /*
-    let direct_va = direct_va + PAGE_SIZE_4K - 32;
-    let stack = unsafe {
-        core::slice::from_raw_parts_mut(
-            direct_va as *mut usize, 4
-        )
-    };
-    stack[0] = 0;
-    stack[1] = TASK_SIZE - 16;
-    stack[2] = 0;
-    stack[3] = 0;
-    */
 
     Ok(stack.get_sp())
 }

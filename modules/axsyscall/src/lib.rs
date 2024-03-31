@@ -5,16 +5,9 @@ use alloc::string::String;
 
 use axhal::trap::SyscallHandler;
 use axhal::arch::TrapFrame;
-//use axhal::mem::virt_to_phys;
-use core::arch::asm;
 use memory_addr::{align_up_4k, is_aligned_4k};
-use mmap::{MAP_FIXED, MAP_ANONYMOUS};
-use axfile::fops::File;
-use axfile::fops::OpenOptions;
-use alloc::sync::Arc;
-use spinlock::SpinNoIrq;
-use axerrno::LinuxError;
 use axhal::trap::SyscallArgs;
+use fileops::iovec;
 
 #[macro_use]
 extern crate log;
@@ -95,14 +88,6 @@ const LINUX_SYSCALL_BRK:        usize = 0xd6;
 const LINUX_SYSCALL_MUNMAP:     usize = 0xd7;
 const LINUX_SYSCALL_MMAP:       usize = 0xde;
 
-
-#[derive(Debug)]
-#[repr(C)]
-struct iovec {
-    iov_base: usize,
-    iov_len: usize,
-}
-
 /// # Safety
 ///
 /// The caller must ensure that the pointer is valid and
@@ -144,26 +129,11 @@ fn linux_syscall_openat(args: SyscallArgs) -> usize {
 
     let filename = get_user_str(filename);
     error!("filename: {}\n", filename);
-    //////////////////////////
-    let mut opts = OpenOptions::new();
-    opts.read(true);
-
-    let current = task::current();
-    let fs = current.fs.lock();
-    let file = match File::open(&filename, &opts, &fs) {
-        Ok(f) => f,
-        Err(e) => {
-            return (-LinuxError::from(e).code()) as usize;
-        },
-    };
-    let fd = current.filetable.lock().insert(Arc::new(SpinNoIrq::new(file)));
-    //////////////////////////
-    error!("linux_syscall_openat fd {}", fd);
-    fd
+    fileops::openat(dtd, &filename, flags, mode)
 }
 
-fn linux_syscall_close(args: SyscallArgs) -> usize {
-    error!("linux_syscall_close");
+fn linux_syscall_close(_args: SyscallArgs) -> usize {
+    error!("Todo: linux_syscall_close");
     0
 }
 
@@ -174,125 +144,39 @@ fn linux_syscall_read(args: SyscallArgs) -> usize {
         core::slice::from_raw_parts_mut(buf as *mut u8, count)
     };
 
-    let current = task::current();
-    let filetable = current.filetable.lock();
-    let file = filetable.get_file(fd).unwrap();
-    let mut pos = 0;
-    assert!(count < 1024);
-    let mut buf: [u8; 1024] = [0; 1024];
-    while pos < count {
-        let ret = file.lock().read(&mut buf[pos..]).unwrap();
-        if ret == 0 {
-            break;
-        }
-        pos += ret;
-    }
-    axhal::arch::enable_sum();
-    user_buf.copy_from_slice(&buf[..count]);
-    axhal::arch::disable_sum();
-    //error!("linux_syscall_read: fd {}, buf {:#X}, count {}, ret {}", fd, buf, count, pos);
-    pos
+    fileops::read(fd, user_buf, count)
 }
 
 fn linux_syscall_write(args: SyscallArgs) -> usize {
     let [fd, buf, size, ..] = args;
     debug!("write: {:#x}, {:#x}, {:#x}", fd, buf, size);
 
-    let bytes = unsafe { core::slice::from_raw_parts(buf as *const u8, size) };
-    /*
-    let s = String::from_utf8(bytes.into());
-    debug!("{}", s.unwrap());
-    */
+    let buf = unsafe { core::slice::from_raw_parts(buf as *const u8, size) };
 
-    axhal::arch::enable_sum();
-    axhal::console::write_bytes(bytes);
-    axhal::arch::disable_sum();
-
-    return size;
+    fileops::write(buf)
 }
 
 fn linux_syscall_writev(args: SyscallArgs) -> usize {
     let [fd, array, size, ..] = args;
     debug!("writev: {:#x}, {:#x}, {:#x}", fd, array, size);
 
-    axhal::arch::enable_sum();
     let iov_array = unsafe { core::slice::from_raw_parts(array as *const iovec, size) };
-    for iov in iov_array {
-        debug!("iov: {:#X} {:#X}", iov.iov_base, iov.iov_len);
-        let bytes = unsafe { core::slice::from_raw_parts(iov.iov_base as *const _, iov.iov_len) };
-        let s = String::from_utf8(bytes.into());
-        error!("{}", s.unwrap());
-    }
-    axhal::arch::disable_sum();
-
-    return size;
-}
-
-#[derive(Debug, Clone, Copy, Default)]
-#[repr(C)]
-pub struct KernelStat {
-    pub st_dev: u64,
-    pub st_ino: u64,
-    pub st_mode: u32,
-    pub st_nlink: u32,
-    pub st_uid: u32,
-    pub st_gid: u32,
-    pub st_rdev: u64,
-    pub _pad0: u64,
-    pub st_size: u64,
-    pub st_blksize: u32,
-    pub _pad1: u32,
-    pub st_blocks: u64,
-    pub st_atime_sec: isize,
-    pub st_atime_nsec: isize,
-    pub st_mtime_sec: isize,
-    pub st_mtime_nsec: isize,
-    pub st_ctime_sec: isize,
-    pub st_ctime_nsec: isize,
+    fileops::writev(iov_array)
 }
 
 fn linux_syscall_fstatat(args: SyscallArgs) -> usize {
     let [dirfd, pathname, statbuf, flags, ..] = args;
 
+    error!("###### fstatat!!! {:#x} {:#x} {:#x}", dirfd, statbuf, flags);
     if (flags as isize & AT_EMPTY_PATH) == 0 {
+        // Todo: Handle this situation.
         let pathname = get_user_str(pathname);
-        warn!("!!! implement NONE AT_EMPTY_PATH for pathname: {}\n", pathname);
+        warn!("!!! implement NON-EMPTY for pathname: {}\n", pathname);
         return 0;
     }
 
-    error!("###### fstatat!!! {:#x} {:#x} {:#x}", dirfd, statbuf, flags);
-    let current = task::current();
-    let filetable = current.filetable.lock();
-    let file = match filetable.get_file(dirfd) {
-        Some(f) => f,
-        None => {
-            return (-2isize) as usize;
-        },
-    };
-    let metadata = file.lock().get_attr().unwrap();
-    let ty = metadata.file_type() as u8;
-    let perm = metadata.perm().bits() as u32;
-    let st_mode = ((ty as u32) << 12) | perm;
-    let st_size = metadata.size();
-    error!("st_size: {}", st_size);
-
-    let statbuf = statbuf as *mut KernelStat;
-    axhal::arch::enable_sum();
-    unsafe {
-        *statbuf = KernelStat {
-            st_ino: 1,
-            st_nlink: 1,
-            st_mode,
-            st_uid: 1000,
-            st_gid: 1000,
-            st_size: st_size,
-            st_blocks: metadata.blocks() as _,
-            st_blksize: 512,
-            ..Default::default()
-        };
-    }
-    axhal::arch::disable_sum();
-    0
+    // Todo: use real pathname to replace ""
+    fileops::fstatat(dirfd, "", statbuf, flags)
 }
 
 fn linux_syscall_mmap(args: SyscallArgs) -> usize {

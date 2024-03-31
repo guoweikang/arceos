@@ -525,6 +525,7 @@ dependencies = [
  "axfile",
  "axhal",
  "crate_interface",
+ "fileops",
  "log",
  "memory_addr",
  "mmap",
@@ -1064,6 +1065,18 @@ source = "git+https://github.com/rafalh/rust-fatfs?rev=a3a834e#a3a834ef92d94dd22
 dependencies = [
  "bitflags 1.3.2",
  "log",
+]
+
+[[package]]
+name = "fileops"
+version = "0.1.0"
+dependencies = [
+ "axerrno",
+ "axfile",
+ "axhal",
+ "log",
+ "spinlock",
+ "task",
 ]
 
 [[package]]
