@@ -47,7 +47,7 @@ pub fn kernel_execve(filename: &str) -> LinuxResult {
 
 fn setup_zero_page() -> LinuxResult {
     error!("setup_zero_page ...");
-    mmap::mmap(0x0, PAGE_SIZE_4K, 0, MAP_FIXED|MAP_ANONYMOUS, None, 0)?;
+    mmap::_mmap(0x0, PAGE_SIZE_4K, 0, MAP_FIXED|MAP_ANONYMOUS, None, 0)?;
     Ok(())
 }
 
@@ -123,7 +123,7 @@ fn get_arg_page(entry: usize) -> LinuxResult<usize> {
     let auxv = get_auxv_vector(entry);
 
     let va = TASK_SIZE - STACK_SIZE;
-    mmap::mmap(va, STACK_SIZE, 0, MAP_FIXED|MAP_ANONYMOUS, None, 0)?;
+    mmap::_mmap(va, STACK_SIZE, 0, MAP_FIXED|MAP_ANONYMOUS, None, 0)?;
     let direct_va = mmap::faultin_page(TASK_SIZE - PAGE_SIZE_4K);
     let mut stack = UserStack::new(TASK_SIZE, direct_va+PAGE_SIZE_4K);
 
@@ -207,7 +207,7 @@ fn load_elf_interp(file: FileRef, load_bias: usize, app_entry: usize) -> LinuxRe
 
         let va = align_down_4k(phdr.p_vaddr as usize);
         let va_end = align_up_4k((phdr.p_vaddr + phdr.p_filesz) as usize);
-        mmap::mmap(va + load_bias, va_end - va, 0, MAP_FIXED, Some(file.clone()), phdr.p_offset as usize)?;
+        mmap::_mmap(va + load_bias, va_end - va, 0, MAP_FIXED, Some(file.clone()), phdr.p_offset as usize)?;
 
         let pos = (phdr.p_vaddr + phdr.p_filesz) as usize;
         if elf_bss < pos {
@@ -267,7 +267,7 @@ fn load_elf_binary(file: FileRef, load_bias: usize) -> LinuxResult {
 
         let va = align_down_4k(phdr.p_vaddr as usize);
         let va_end = align_up_4k((phdr.p_vaddr + phdr.p_filesz) as usize);
-        mmap::mmap(va + load_bias, va_end - va, 0, MAP_FIXED, Some(file.clone()), phdr.p_offset as usize)?;
+        mmap::_mmap(va + load_bias, va_end - va, 0, MAP_FIXED, Some(file.clone()), phdr.p_offset as usize)?;
 
         let pos = (phdr.p_vaddr + phdr.p_filesz) as usize;
         if elf_bss < pos {
@@ -316,7 +316,7 @@ fn set_brk(elf_bss: usize, elf_brk: usize) {
     let elf_brk = align_up_4k(elf_brk);
     if elf_bss < elf_brk {
         error!("{:#X} < {:#X}", elf_bss, elf_brk);
-        mmap::mmap(elf_bss, elf_brk - elf_bss, 0, MAP_FIXED|MAP_ANONYMOUS, None, 0).unwrap();
+        mmap::_mmap(elf_bss, elf_brk - elf_bss, 0, MAP_FIXED|MAP_ANONYMOUS, None, 0).unwrap();
     }
 
     task::current().mm().lock().set_brk(elf_brk as usize)

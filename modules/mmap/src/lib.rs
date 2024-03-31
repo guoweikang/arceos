@@ -19,6 +19,20 @@ pub const MAP_FIXED: usize = 0x10;
 pub const MAP_ANONYMOUS: usize = 0x20;
 
 pub fn mmap(
+    mut va: usize, mut len: usize, prot: usize, flags: usize,
+    fd: usize, offset: usize
+) -> LinuxResult<usize> {
+    let current = task::current();
+    let filetable = current.filetable.lock();
+    let file = if (flags & MAP_ANONYMOUS) != 0 {
+        None
+    } else {
+        filetable.get_file(fd)
+    };
+    _mmap(va, len, prot, flags, file, offset)
+}
+
+pub fn _mmap(
     mut va: usize, mut len: usize, _prot: usize, flags: usize,
     file: Option<FileRef>, offset: usize
 ) -> LinuxResult<usize> {
@@ -92,4 +106,26 @@ pub fn faultin_page(va: usize) -> usize {
     }
     let _ = locked_mm.map_region(va, pa, PAGE_SIZE_4K, 1);
     phys_to_virt(pa.into()).into()
+}
+
+pub fn set_brk(va: usize) -> usize {
+    // Have a guard for mm to lock this whole function,
+    // because mm.brk() and mm.set_brk() should be in a atomic context.
+    let mm = task::current().mm();
+    let brk = mm.lock().brk();
+
+    assert!(is_aligned_4k(brk));
+    error!("brk!!! {:#x}, {:#x}", va, brk);
+
+    if va == 0 {
+        brk
+    } else {
+        assert!(va > brk);
+        let offset = va - brk;
+        assert!(is_aligned_4k(offset));
+        _mmap(brk, offset, 0, MAP_FIXED|MAP_ANONYMOUS, None, 0).unwrap();
+        let _ = faultin_page(brk);
+        mm.lock().set_brk(va);
+        va
+    }
 }

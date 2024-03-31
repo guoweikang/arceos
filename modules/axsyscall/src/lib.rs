@@ -300,14 +300,7 @@ fn linux_syscall_mmap(args: SyscallArgs) -> usize {
     assert!(is_aligned_4k(va));
     error!("###### mmap!!! {:#x} {:#x} {:#x} {:#x} {:#x} {:#x}", va, len, prot, flags, fd, offset);
 
-    let current = task::current();
-    let filetable = current.filetable.lock();
-    let file = if (flags & MAP_ANONYMOUS) != 0 {
-        None
-    } else {
-        filetable.get_file(fd)
-    };
-    mmap::mmap(va, len, prot, flags, file, offset).unwrap()
+    mmap::mmap(va, len, prot, flags, fd, offset).unwrap()
 }
 
 const UTS_LEN: usize = 64;
@@ -348,26 +341,8 @@ fn init_bytes_from_str(dst: &mut [u8], src: &str) {
 }
 
 fn linux_syscall_brk(args: SyscallArgs) -> usize {
-    // Have a guard for mm to lock this whole function,
-    // because mm.brk() and mm.set_brk() should be in a atomic context.
-    let mm = task::current().mm();
-    let brk = mm.lock().brk();
-
     let va = align_up_4k(args[0]);
-    assert!(is_aligned_4k(brk));
-    error!("brk!!! {:#x}, {:#x}", va, brk);
-
-    if va == 0 {
-        brk
-    } else {
-        assert!(va > brk);
-        let offset = va - brk;
-        assert!(is_aligned_4k(offset));
-        mmap::mmap(brk, offset, 0, MAP_FIXED|MAP_ANONYMOUS, None, 0).unwrap();
-        let _ = mmap::faultin_page(brk);
-        mm.lock().set_brk(va);
-        va
-    }
+    mmap::set_brk(va)
 }
 
 fn linux_syscall_munmap(args: SyscallArgs) -> usize {
