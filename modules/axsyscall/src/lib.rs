@@ -6,18 +6,20 @@ use alloc::string::String;
 use axhal::trap::SyscallHandler;
 use axhal::arch::TrapFrame;
 use memory_addr::{align_up_4k, is_aligned_4k};
-use axhal::trap::SyscallArgs;
 use fileops::iovec;
 
 #[macro_use]
 extern crate log;
+
+const MAX_SYSCALL_ARGS: usize = 6;
+pub type SyscallArgs = [usize; MAX_SYSCALL_ARGS];
 
 pub const AT_FDCWD: isize = -100;
 pub const AT_EMPTY_PATH: isize = 0x1000;
 
 struct LinuxSyscallHandler;
 
-fn do_syscall(args: SyscallArgs, sysno: usize) -> usize {
+pub fn do_syscall(args: SyscallArgs, sysno: usize) -> usize {
     match sysno {
         LINUX_SYSCALL_OPENAT => {
             linux_syscall_openat(args)
@@ -61,13 +63,6 @@ fn do_syscall(args: SyscallArgs, sysno: usize) -> usize {
         _ => {
             0
         }
-    }
-}
-
-#[crate_interface::impl_interface]
-impl SyscallHandler for LinuxSyscallHandler {
-    fn handle_syscall(tf: &mut TrapFrame) {
-        axhal::arch::syscall(tf, do_syscall);
     }
 }
 

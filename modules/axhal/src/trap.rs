@@ -6,9 +6,6 @@ use crate::arch::TrapFrame;
 pub const TRAPFRAME_SIZE: usize = core::mem::size_of::<TrapFrame>();
 pub const STACK_ALIGN: usize = 16;
 
-const MAX_SYSCALL_ARGS: usize = 6;
-pub type SyscallArgs = [usize; MAX_SYSCALL_ARGS];
-
 /// Trap handler interface.
 ///
 /// This trait is defined with the [`#[def_interface]`][1] attribute. Users
@@ -25,12 +22,12 @@ pub trait TrapHandler {
 
 /// Call the external IRQ handler.
 #[allow(dead_code)]
-pub(crate) fn handle_irq_extern(irq_num: usize) {
+pub fn handle_irq_extern(irq_num: usize) {
     call_interface!(TrapHandler::handle_irq, irq_num);
 }
 
 /// Call page fault handler.
-pub(crate) fn handle_page_fault(badaddr: usize, cause: usize) {
+pub fn handle_page_fault(badaddr: usize, cause: usize) {
     call_interface!(TrapHandler::handle_page_fault, badaddr, cause);
 }
 
@@ -41,6 +38,6 @@ pub trait SyscallHandler {
 
 /// Call the syscall handler.
 #[allow(dead_code)]
-pub(crate) fn handle_linux_syscall(tf: &mut TrapFrame) {
+pub fn handle_linux_syscall(tf: &mut TrapFrame) {
     call_interface!(SyscallHandler::handle_syscall, tf);
 }

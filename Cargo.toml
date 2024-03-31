@@ -81,7 +81,9 @@ members = [
     "modules/axfile",
     "modules/fstree",
     "modules/filetable",
-    "modules/mkboot", "modules/fileops",
+    "modules/mkboot",
+    "modules/fileops",
+    "modules/axtrap",
 ]
 
 [profile.release]

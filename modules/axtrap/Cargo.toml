@@ -1,0 +1,17 @@
+[package]
+name = "axtrap"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+log = "0.4"
+cfg-if = "1.0"
+axhal = { path = "../axhal" }
+axsyscall = { path = "../axsyscall" }
+mmap = { path = "../mmap" }
+kernel_guard = { path = "../../crates/kernel_guard" }
+
+[target.'cfg(any(target_arch = "riscv32", target_arch = "riscv64"))'.dependencies]
+riscv = "0.10"

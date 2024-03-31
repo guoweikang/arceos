@@ -12,9 +12,9 @@ use riscv::register::{satp, sstatus, stvec};
 use crate::mem::PAGE_SIZE_4K;
 
 pub use self::context::{GeneralRegisters, TaskContext, TrapFrame, start_thread};
-pub use trap::syscall;
 
 pub const TASK_SIZE: usize = 0x40_0000_0000;
+#[cfg(feature = "paging")]
 pub const STACK_SIZE: usize = 32 * PAGE_SIZE_4K;
 
 /*
@@ -30,6 +30,7 @@ pub const ELF_ET_DYN_BASE: usize = (TASK_SIZE / 3) * 2;
  * This decides where the kernel will search for a free chunk of vm
  * space during mmap's.
  */
+#[cfg(feature = "paging")]
 pub const TASK_UNMAPPED_BASE: usize = (TASK_SIZE / 3) & !(PAGE_SIZE_4K - 1);
 
 /// Status register flags
@@ -105,6 +106,7 @@ pub unsafe fn write_page_table_root0(root_paddr: PhysAddr) {
     write_page_table_root(root_paddr)
 }
 
+#[cfg(feature = "paging")]
 pub fn sync_kernel_mappings(src_paddr: PhysAddr, dst_paddr: PhysAddr) {
     let dst_ptr = phys_to_virt(dst_paddr).as_mut_ptr();
     let src_ptr = phys_to_virt(src_paddr).as_ptr();

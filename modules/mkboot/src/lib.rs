@@ -85,6 +85,8 @@ pub extern "C" fn rust_main(cpu_id: usize, dtb: usize) -> ! {
     info!("Logging is enabled.");
     info!("MacroKernel is starting: Primary CPU {} started, dtb = {:#x}.", cpu_id, dtb);
 
+    axtrap::init_trap_vector();
+
     info!("Found physcial memory regions:");
     for r in axhal::mem::memory_regions() {
         info!(

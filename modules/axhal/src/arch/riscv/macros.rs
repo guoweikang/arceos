@@ -1,3 +1,4 @@
+#[macro_export]
 macro_rules! include_asm_marcos {
     () => {
         #[cfg(target_arch = "riscv32")]
@@ -75,6 +76,51 @@ macro_rules! include_asm_marcos {
             PUSH_POP_GENERAL_REGS LDR
         .endm
 
+        .endif
+
+        .ifndef .LSAVE_REGS
+        .equ .LSAVE_REGS, 0
+        .macro SAVE_REGS, from_user
+            PUSH_GENERAL_REGS
+
+            csrr    t0, sepc
+            csrr    t1, sstatus
+            csrrw   t2, sscratch, zero          // save sscratch (sp) and zero it
+            STR     t0, sp, 31                  // tf.sepc
+            STR     t1, sp, 32                  // tf.sstatus
+            STR     t2, sp, 1                   // tf.regs.sp
+
+        .if \from_user == 1
+            LDR     t1, sp, 2                   // load supervisor gp
+            LDR     t0, sp, 3                   // load supervisor tp
+            STR     gp, sp, 2                   // save user gp and tp
+            STR     tp, sp, 3
+            mv      tp, t0
+            mv      gp, t1
+        .endif
+        .endm
+        .endif
+
+        .ifndef .LRESTORE_REGS
+        .equ .LRESTORE_REGS, 0
+        .macro RESTORE_REGS, from_user
+        .if \from_user == 1
+            LDR     t1, sp, 2                   // load user gp and tp
+            LDR     t0, sp, 3
+            STR     gp, sp, 2                   // save supervisor gp
+            STR     tp, sp, 3                   // save supervisor tp
+            mv      tp, t0
+            mv      gp, t1
+        .endif
+
+            LDR     t0, sp, 31
+            LDR     t1, sp, 32
+            csrw    sepc, t0
+            csrw    sstatus, t1
+
+            POP_GENERAL_REGS
+            LDR     sp, sp, 1                   // load sp from tf.regs.sp
+        .endm
         .endif"
         );
     };
