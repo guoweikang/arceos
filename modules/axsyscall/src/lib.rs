@@ -144,7 +144,7 @@ fn linux_syscall_read(args: SyscallArgs) -> usize {
         core::slice::from_raw_parts_mut(buf as *mut u8, count)
     };
 
-    fileops::read(fd, user_buf, count)
+    fileops::read(fd, user_buf)
 }
 
 fn linux_syscall_write(args: SyscallArgs) -> usize {
