@@ -8,7 +8,6 @@ extern crate axlog;
 
 #[cfg(all(target_os = "none", not(test)))]
 mod lang_items;
-mod trap;
 
 use core::sync::atomic::{AtomicUsize, Ordering};
 use fork::{user_mode_thread, CloneFlags};
