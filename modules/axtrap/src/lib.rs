@@ -4,8 +4,6 @@
 #[macro_use]
 extern crate log;
 
-use axhal::arch::TrapFrame;
-
 mod arch;
 mod platform;
 pub mod irq;

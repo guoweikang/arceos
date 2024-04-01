@@ -3,8 +3,6 @@
 extern crate alloc;
 use alloc::string::String;
 
-use axhal::trap::SyscallHandler;
-use axhal::arch::TrapFrame;
 use memory_addr::{align_up_4k, is_aligned_4k};
 use fileops::iovec;
 
@@ -16,8 +14,6 @@ pub type SyscallArgs = [usize; MAX_SYSCALL_ARGS];
 
 pub const AT_FDCWD: isize = -100;
 pub const AT_EMPTY_PATH: isize = 0x1000;
-
-struct LinuxSyscallHandler;
 
 pub fn do_syscall(args: SyscallArgs, sysno: usize) -> usize {
     match sysno {

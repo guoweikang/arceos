@@ -30,14 +30,3 @@ pub fn handle_irq_extern(irq_num: usize) {
 pub fn handle_page_fault(badaddr: usize, cause: usize) {
     call_interface!(TrapHandler::handle_page_fault, badaddr, cause);
 }
-
-#[def_interface]
-pub trait SyscallHandler {
-    fn handle_syscall(tf: &mut TrapFrame);
-}
-
-/// Call the syscall handler.
-#[allow(dead_code)]
-pub fn handle_linux_syscall(tf: &mut TrapFrame) {
-    call_interface!(SyscallHandler::handle_syscall, tf);
-}

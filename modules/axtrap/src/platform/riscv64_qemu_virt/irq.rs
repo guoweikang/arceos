@@ -2,7 +2,6 @@
 
 use crate::irq::IrqHandler;
 use lazy_init::LazyInit;
-use riscv::register::sie;
 
 /// `Interrupt` bit in `scause`
 pub(super) const INTC_IRQ_BASE: usize = 1 << (usize::BITS - 1);
@@ -21,9 +20,6 @@ static TIMER_HANDLER: LazyInit<IrqHandler> = LazyInit::new();
 
 /// The maximum number of IRQs.
 pub const MAX_IRQ_COUNT: usize = 1024;
-
-/// The timer IRQ number (supervisor timer interrupt in `scause`).
-pub const TIMER_IRQ_NUM: usize = S_TIMER;
 
 macro_rules! with_cause {
     ($cause: expr, @TIMER => $timer_op: expr, @EXT => $ext_op: expr $(,)?) => {

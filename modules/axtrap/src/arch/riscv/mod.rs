@@ -1,4 +1,4 @@
-use riscv::register::{satp, sstatus, stvec};
+use riscv::register::stvec;
 use riscv::register::scause::{self, Exception as E, Trap};
 use axhal::arch::TrapFrame;
 use riscv::register::stval;
@@ -53,7 +53,7 @@ fn handle_page_fault(badaddr: usize, _cause: usize) {
 
 /// Call the external IRQ handler.
 fn handle_irq_extern(irq_num: usize) {
-    error!("handle_irq_extern ...");
+    error!("handle_irq_extern irq: {:#X} ...", irq_num);
     let guard = kernel_guard::NoPreempt::new();
     crate::platform::irq::dispatch_irq(irq_num);
     drop(guard); // rescheduling may occur when preemption is re-enabled.
