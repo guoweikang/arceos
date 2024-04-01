@@ -85,6 +85,7 @@ pub extern "C" fn rust_main(cpu_id: usize, dtb: usize) -> ! {
     info!("Logging is enabled.");
     info!("MacroKernel is starting: Primary CPU {} started, dtb = {:#x}.", cpu_id, dtb);
 
+    info!("Initialize trap|irq|syscall vector...");
     axtrap::init_trap_vector();
 
     info!("Found physcial memory regions:");
@@ -209,7 +210,7 @@ fn init_interrupt() {
         axhal::time::set_oneshot_timer(deadline);
     }
 
-    axhal::irq::register_handler(TIMER_IRQ_NUM, || {
+    axtrap::irq::register_handler(TIMER_IRQ_NUM, || {
         update_timer();
         run_queue::on_timer_tick();
     });
