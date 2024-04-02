@@ -11,6 +11,7 @@ default = ["axhal/irq", "percpu", "kernel_guard"]
 [dependencies]
 axhal = { path = "../axhal" }
 arch_boot = { path = "../arch_boot" }
+axirq = { path = "../axirq" }
 axconfig = { path = "../axconfig" }
 axlog = { path = "../axlog" }
 axalloc = { path = "../axalloc" }

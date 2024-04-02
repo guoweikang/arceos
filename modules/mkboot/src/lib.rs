@@ -208,7 +208,7 @@ fn init_interrupt() {
         axhal::time::set_oneshot_timer(deadline);
     }
 
-    axhal::irq::register_handler(TIMER_IRQ_NUM, || {
+    axirq::register_handler(TIMER_IRQ_NUM, || {
         update_timer();
         run_queue::on_timer_tick();
     });

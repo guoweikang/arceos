@@ -1,11 +1,7 @@
-
 pub mod console;
 pub mod mem;
 pub mod misc;
 pub mod time;
-
-#[cfg(feature = "irq")]
-pub mod irq;
 
 #[cfg(feature = "smp")]
 pub mod mp;
@@ -15,7 +11,7 @@ pub mod mp;
 /// For example, the interrupt controller and the timer.
 pub fn platform_init() {
     #[cfg(feature = "irq")]
-    self::irq::init_percpu();
+    axirq::init_percpu();
     self::time::init_percpu();
 }
 
@@ -23,6 +19,6 @@ pub fn platform_init() {
 #[cfg(feature = "smp")]
 pub fn platform_init_secondary() {
     #[cfg(feature = "irq")]
-    self::irq::init_percpu();
+    axirq::init_percpu();
     self::time::init_percpu();
 }
