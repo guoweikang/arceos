@@ -215,6 +215,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "arch_boot"
+version = "0.1.0"
+dependencies = [
+ "aarch64-cpu",
+ "axconfig",
+ "axhal",
+ "axtrap",
+ "bitflags 2.4.0",
+ "cfg-if",
+ "log",
+ "raw-cpuid 11.0.1",
+ "riscv",
+ "sbi-rt",
+ "static_assertions",
+ "tock-registers",
+ "x2apic",
+ "x86",
+ "x86_64",
+]
+
+[[package]]
 name = "arm_gic"
 version = "0.1.0"
 dependencies = [
@@ -302,6 +323,7 @@ dependencies = [
 name = "axfeat"
 version = "0.1.0"
 dependencies = [
+ "arch_boot",
  "axalloc",
  "axdisplay",
  "axdriver",
@@ -1357,6 +1379,7 @@ checksum = "b06a4cde4c0f271a446782e3eff8de789548ce57dbc8eca9292c27f4a42004b4"
 name = "macrokernel"
 version = "0.1.0"
 dependencies = [
+ "arch_boot",
  "axstd",
 ]
 
@@ -1409,7 +1432,6 @@ dependencies = [
  "axlog",
  "axmount",
  "axsyscall",
- "axtrap",
  "crate_interface",
  "exec",
  "fork",

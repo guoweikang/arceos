@@ -1,4 +1,3 @@
-mod boot;
 
 pub mod console;
 pub mod mem;
@@ -10,30 +9,6 @@ pub mod irq;
 
 #[cfg(feature = "smp")]
 pub mod mp;
-
-extern "C" {
-    #[cfg(not(feature = "monolithic"))]
-    fn trap_vector_base();
-    fn rust_main(cpu_id: usize, dtb: usize);
-    #[cfg(feature = "smp")]
-    fn rust_main_secondary(cpu_id: usize);
-}
-
-unsafe extern "C" fn rust_entry(cpu_id: usize, dtb: usize) {
-    crate::mem::clear_bss();
-    crate::cpu::init_primary(cpu_id);
-    #[cfg(not(feature = "monolithic"))]
-    crate::arch::set_trap_vector_base(trap_vector_base as usize);
-    rust_main(cpu_id, dtb);
-}
-
-#[cfg(feature = "smp")]
-unsafe extern "C" fn rust_entry_secondary(cpu_id: usize) {
-    #[cfg(not(feature = "monolithic"))]
-    crate::arch::set_trap_vector_base(trap_vector_base as usize);
-    crate::cpu::init_secondary(cpu_id);
-    rust_main_secondary(cpu_id);
-}
 
 /// Initializes the platform devices for the primary CPU.
 ///
