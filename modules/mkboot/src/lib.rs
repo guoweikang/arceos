@@ -1,7 +1,6 @@
 //! Startup process for monolithic kernel.
 
 #![cfg_attr(not(test), no_std)]
-#![feature(result_option_inspect)]
 
 #[macro_use]
 extern crate axlog;
